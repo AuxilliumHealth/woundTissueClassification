@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "imaging"
 include(":app")
-//include(":woundtissueclassification")
+include(":woundtissueclassification")

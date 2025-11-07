@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Activities.WoundLocationActivity">
+
+    <!-- AppBarLayout for toolbar -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:fitsSystemWindows="true"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar2"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:layout_scrollFlags="scroll|enterAlways">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ImageButton
+                    android:id="@+id/back_img"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="back"
+                    android:padding="8dp"
+                    android:src="@drawable/arrow_left_icon" />
+            </RelativeLayout>
+        </com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Title text -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/title_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/app_bar2"
+        android:layout_centerHorizontal="true"
+        android:layout_marginStart="20dp"
+        android:text="Let us know the wound location"
+        android:textColor="@color/black"
+        android:textSize="@dimen/text_medium"
+        android:textStyle="normal" />
+
+    <!-- Scrollable content area -->
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/bottom_relative"
+        android:layout_below="@+id/title_txt"
+        android:orientation="vertical">
+
+
+        <!-- Image that adjusts to screen width -->
+        <ImageView
+            android:id="@+id/body_img"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:padding="@dimen/_5dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/front" />
+
+    </LinearLayout>
+
+    <!-- ImageButton at the bottom -->
+    <RelativeLayout
+        android:id="@+id/bottom_relative"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_alignParentBottom="true">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/wound_area_txt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_marginStart="@dimen/_10dp"
+            android:layout_marginTop="@dimen/_10dp"
+            android:layout_marginEnd="@dimen/_10dp"
+            android:layout_marginBottom="@dimen/_10dp"
+            android:text="Front"
+            android:textSize="@dimen/text_large"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/rotate_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="20dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/rotate_body_icon" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/next_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="@dimen/_20dp"
+            android:rotation="180"
+            android:layout_marginBottom="@dimen/_10dp"
+            android:src="@drawable/arrow_left_icon"
+            app:fabSize="normal"
+            app:tint="@color/white" />
+
+    </RelativeLayout>
+</RelativeLayout>

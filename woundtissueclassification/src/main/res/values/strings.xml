@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">woundtissueclassification</string>
+
+    <string name="please_calibrate_camera">Calibrate your device using one of the listed coins so we can measure wound size correctly.</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="camera_permission_description">Camera permission is required to run this application.</string>
+    <string name="request_permission">Request Permission</string>
+    <string name="open_app_settings">Open App Settings</string>
+
+    <string name="back_button_desc">Navigate back</string>
+    <string name="help_button_desc">Get help</string>
+    <string name="flash_button_desc">Toggle flash</string>
+    <string name="capture_button_desc">Take photo</string>
+    <string name="move_arrow_desc">Movement indicator</string>
+    <string name="focus_indicator_desc">Focus area indicator</string>
+
+
+    <!-- Instruction Strings -->
+    <string name="ideal_conditions_message">Wait for the camera button to turn green for ideal imaging conditions.</string>
+    <string name="move_instruction">Move to different distance</string>
+
+    <!-- Error Messages -->
+    <string name="error_camera_unavailable">Camera is not available. Please try again later.</string>
+    <string name="error_storage_permission">Storage permission is required to save images.</string>
+
+    <!-- Button Labels -->
+    <string name="btn_retry">Retry</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_cancel">Cancel</string>
+
+    <!-- Accessibility -->
+    <string name="content_desc_progress_indicator">Progress indicator</string>
+</resources>

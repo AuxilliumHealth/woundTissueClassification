@@ -1,0 +1,279 @@
+package com.auxilliumhealth.woundtissueclassification.fragments;
+
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+import com.auxilliumhealth.woundtissueclassification.R;
+import com.auxilliumhealth.woundtissueclassification.databinding.FragmentWoundFrontUpperBinding;
+
+import java.io.ByteArrayOutputStream;
+
+public class WoundFrontFragment extends Fragment implements View.OnClickListener {
+
+    FragmentWoundFrontUpperBinding binding;
+    String upperLowerbody, frontBackBody, userId, token, woundId;
+    String primaryColor;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        binding = FragmentWoundFrontUpperBinding.inflate(inflater, container, false);
+        initView();
+        return binding.getRoot();
+    }
+
+    private void initView() {
+        Bundle args = getArguments();
+        if (args != null) {
+            upperLowerbody = args.getString("upperLowerbody");
+            frontBackBody = args.getString("frontBackBody");
+            userId = args.getString("userId");
+            token = args.getString("token");
+            woundId = args.getString("woundId");
+            primaryColor = args.getString("primaryColor");
+
+        }
+
+        binding.bodyPartTxt.setTextColor(Color.parseColor(primaryColor));
+        binding.leftTxt.setTextColor(Color.parseColor(primaryColor));
+        binding.rightTxt.setTextColor(Color.parseColor(primaryColor));
+
+        setupClickListeners();
+    }
+
+    private void setupClickListeners() {
+        binding.backImg.setOnClickListener(this);
+
+        // Upper body parts
+        binding.leftCheastCard.setOnClickListener(this);
+        binding.rightCheastCard.setOnClickListener(this);
+        binding.leftFaceCard.setOnClickListener(this);
+        binding.rightFaceCard.setOnClickListener(this);
+        binding.leftNeckCard.setOnClickListener(this);
+        binding.rightNeckCard.setOnClickListener(this);
+        binding.leftHipCard.setOnClickListener(this);
+        binding.rightHipCard.setOnClickListener(this);
+        binding.leftSholderCard.setOnClickListener(this);
+        binding.rightSholderCard.setOnClickListener(this);
+        binding.leftFingerCard.setOnClickListener(this);
+        binding.rightFingerCard.setOnClickListener(this);
+        binding.leftWristCard.setOnClickListener(this);
+        binding.rightWristCard.setOnClickListener(this);
+
+        // Lower body parts
+        binding.leftHiptokneeCard.setOnClickListener(this);
+        binding.leftHiptoankleCard.setOnClickListener(this);
+        binding.leftFootCard.setOnClickListener(this);
+        binding.rightHiptokneeCard.setOnClickListener(this);
+        binding.rightHiptoankleCard.setOnClickListener(this);
+        binding.rightFootCard.setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View view) {
+        if (view.getId() == R.id.back_img) {
+            goBack();
+            return;
+        }
+
+        // Handle all body part clicks
+        handleBodyPartClick(view);
+    }
+
+    private void handleBodyPartClick(View view) {
+        String partSideBody = "";
+        String woundPartBody = "";
+        int imageResId = 0;
+        boolean isUpperBody = true;
+
+        // Determine body part details based on clicked view
+        if (view.getId() == R.id.left_face_card) {
+            partSideBody = "Left";
+            woundPartBody = "Face";
+            imageResId = R.id.left_face_img;
+        }
+        else if (view.getId() == R.id.right_face_card) {
+            partSideBody = "Right";
+            woundPartBody = "Face";
+            imageResId = R.id.right_face_img;
+        }
+        else if (view.getId() == R.id.left_cheast_card) {
+            partSideBody = "Left";
+            woundPartBody = "Chest to Abdomen";
+            imageResId = R.id.left_chest_abdomen_img;
+        }
+        else if (view.getId() == R.id.right_cheast_card) {
+            partSideBody = "Right";
+            woundPartBody = "Chest to Abdomen";
+            imageResId = R.id.right_chest_abdomen_img;
+        }
+        else if (view.getId() == R.id.left_neck_card) {
+            partSideBody = "Left";
+            woundPartBody = "Neck";
+            imageResId = R.id.left_neck_img;
+        }
+        else if (view.getId() == R.id.right_neck_card) {
+            partSideBody = "Right";
+            woundPartBody = "Neck";
+            imageResId = R.id.right_neck_img;
+        }
+        else if (view.getId() == R.id.left_hip_card) {
+            partSideBody = "Left";
+            woundPartBody = "Hip and Waist";
+            imageResId = R.id.left_hip_and_waist_img;
+        }
+        else if (view.getId() == R.id.right_hip_card) {
+            partSideBody = "Right";
+            woundPartBody = "Hip and Waist";
+            imageResId = R.id.right_hip_and_waist_img;
+        }
+        else if (view.getId() == R.id.left_sholder_card) {
+            partSideBody = "Left";
+            woundPartBody = "Shoulder to Elbow";
+            imageResId = R.id.left_sholder_img;
+        }
+        else if (view.getId() == R.id.right_sholder_card) {
+            partSideBody = "Right";
+            woundPartBody = "Shoulder to Elbow";
+            imageResId = R.id.right_sholder_img;
+        }
+        else if (view.getId() == R.id.left_finger_card) {
+            partSideBody = "Left";
+            woundPartBody = "Palm and Fingers";
+            imageResId = R.id.left_palamfinger_img;
+        }
+        else if (view.getId() == R.id.right_finger_card) {
+            partSideBody = "Right";
+            woundPartBody = "Palm and Fingers";
+            imageResId = R.id.right_palamfinger_img;
+        }
+        else if (view.getId() == R.id.left_wrist_card) {
+            partSideBody = "Left";
+            woundPartBody = "Elbow to Wrist";
+            imageResId = R.id.left_elbow_img;
+        }
+        else if (view.getId() == R.id.right_wrist_card) {
+            partSideBody = "Right";
+            woundPartBody = "Elbow to Wrist";
+            imageResId = R.id.right_elbow_img;
+        }
+        else if (view.getId() == R.id.left_hiptoknee_card) {
+            partSideBody = "Left";
+            woundPartBody = "Hip to Knee";
+            imageResId = R.id.left_hip_knee_img;
+            isUpperBody = false;
+        }
+        else if (view.getId() == R.id.right_hiptoknee_card) {
+            partSideBody = "Right";
+            woundPartBody = "Hip to Knee";
+            imageResId = R.id.right_hip_knee_img;
+            isUpperBody = false;
+        }
+        else if (view.getId() == R.id.left_hiptoankle_card) {
+            partSideBody = "Left";
+            woundPartBody = "Knee to Ankle";
+            imageResId = R.id.left_knee_ankle_img;
+            isUpperBody = false;
+        }
+        else if (view.getId() == R.id.right_hiptoankle_card) {
+            partSideBody = "Right";
+            woundPartBody = "Knee to Ankle";
+            imageResId = R.id.right_knee_ankle_img;
+            isUpperBody = false;
+        }
+        else if (view.getId() == R.id.left_foot_card) {
+            partSideBody = "Left";
+            woundPartBody = "Foot";
+            imageResId = R.id.left_foot_img;
+            isUpperBody = false;
+        }
+        else if (view.getId() == R.id.right_foot_card) {
+            partSideBody = "Right";
+            woundPartBody = "Foot";
+            imageResId = R.id.right_foot_img;
+            isUpperBody = false;
+        }
+        else {
+            return;
+        }
+        // Navigate to WoundSummeryFragment
+        navigateToWoundSummary(partSideBody, woundPartBody, imageResId, isUpperBody);
+    }
+
+    private void navigateToWoundSummary(String partSideBody, String woundPartBody, int imageResId, boolean isUpperBody) {
+        try {
+            // Get the image view and bitmap
+            View imageView = binding.getRoot().findViewById(imageResId);
+            if (imageView != null) {
+                imageView.setDrawingCacheEnabled(true);
+                Bitmap bitmap = Bitmap.createBitmap(imageView.getDrawingCache());
+                imageView.setDrawingCacheEnabled(false);
+
+                byte[] byteArray = bitmapToByteArray(bitmap);
+
+                // Create and setup WoundSummeryFragment
+                WoundSummeryFragment fragment = new WoundSummeryFragment();
+                Bundle args = new Bundle();
+                args.putString("frontBackBody", frontBackBody);
+                args.putString("upperLowerbody", isUpperBody ? "Upper" : "Lower");
+                args.putString("partSideBody", partSideBody);
+                args.putString("woundPartBody", woundPartBody);
+                args.putByteArray("woundPartImg", byteArray);
+                args.putString("userId", userId);
+                args.putString("token", token);
+                args.putString("woundId", woundId);
+                args.putString("primaryColor", primaryColor);
+                fragment.setArguments(args);
+
+                // Navigate to fragment
+                FragmentManager fragmentManager = getParentFragmentManager();
+                FragmentTransaction transaction = fragmentManager.beginTransaction();
+                transaction.replace(R.id.container, fragment);
+                transaction.addToBackStack("woundSummary");
+                transaction.commit();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void goBack() {
+        FragmentManager fragmentManager = getParentFragmentManager();
+        if (fragmentManager.getBackStackEntryCount() > 0) {
+            fragmentManager.popBackStack();
+        } else {
+            // Load previous fragment (WoundLocationFragment)
+            WoundLocationFragment fragment = new WoundLocationFragment();
+            Bundle bundle = new Bundle();
+            bundle.putString("frontBackBody", frontBackBody);
+            bundle.putString("userId", userId);
+            bundle.putString("token", token);
+            bundle.putString("woundId", woundId);
+            bundle.putString("primaryColor", primaryColor);
+            fragment.setArguments(bundle);
+
+            FragmentTransaction transaction = fragmentManager.beginTransaction();
+            transaction.replace(R.id.container, fragment);
+            transaction.commit();
+        }
+    }
+
+    private byte[] bitmapToByteArray(Bitmap bitmap) {
+        try {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            return stream.toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new byte[0];
+        }
+    }
+}

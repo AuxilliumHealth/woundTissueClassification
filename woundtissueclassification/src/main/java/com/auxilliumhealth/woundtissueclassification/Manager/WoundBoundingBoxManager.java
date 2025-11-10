@@ -1,0 +1,44 @@
+package com.auxilliumhealth.woundtissueclassification.Manager;
+
+
+import android.content.Context;
+import android.graphics.Bitmap;
+
+import com.auxilliumhealth.woundtissueclassification.Utils.Constants;
+import com.auxilliumhealth.woundtissueclassification.Utils.FileUtil;
+import com.auxilliumhealth.woundtissueclassification.Model.WoundBoundingBox;
+
+
+public class WoundBoundingBoxManager {
+    private  String sessionId;
+    private String imageDirectory;
+    private WoundBoundingBox woundBoundingBox;
+    private Context context;
+
+    public WoundBoundingBoxManager(Context context) {
+        this.context = context;
+    }
+
+    public void init(String imagePath, String sessionId) {
+        this.imageDirectory = imagePath ;
+        this.sessionId = sessionId;
+        woundBoundingBox = new WoundBoundingBox(this.context, this.imageDirectory, Constants.WOUND_BOUNDING_BOX_INPUT_SIZE, Constants.WOUND_BOUNDING_BOX_THRESHOLD);
+    }
+
+    public void process() {
+        woundBoundingBox.run();
+    }
+
+    public Bitmap getOutputBitmap() {
+        return woundBoundingBox.getOutputBitmap();
+    }
+
+    public void save() {
+        FileUtil.saveBitmapAsImage(getOutputBitmap(), Constants.FILE_NAME+sessionId+"/"+Constants.WOUND_BOUNDING_BOX_OUTPUT_IMAGE_NAME );
+    }
+    public float[] getWoundCoordinates() {
+        return woundBoundingBox.getWoundLocations();
+    }
+
+}
+

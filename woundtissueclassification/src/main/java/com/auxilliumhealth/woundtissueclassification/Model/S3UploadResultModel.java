@@ -1,0 +1,69 @@
+package com.auxilliumhealth.woundtissueclassification.Model;
+
+import com.google.gson.annotations.SerializedName;
+
+public class S3UploadResultModel {
+    @SerializedName("message")
+    private String message;
+
+    @SerializedName("userId")
+    private String userId;
+
+    @SerializedName("imageKey")
+    private String imageKey;
+    @SerializedName("imageUrl")
+    private String imageUrl;
+    @SerializedName("sessionId")
+    private String sessionId;
+
+    @SerializedName("woundId")
+    private String woundId;
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getImageKey() {
+        return imageKey;
+    }
+
+    public void setImageKey(String imageKey) {
+        this.imageKey = imageKey;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public String getWoundId() {
+        return woundId;
+    }
+
+    public void setWoundId(String woundId) {
+        this.woundId = woundId;
+    }
+}

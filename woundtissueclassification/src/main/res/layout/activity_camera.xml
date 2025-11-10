@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:background="@android:color/black"
+    android:paddingTop="@dimen/_25dp">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:scaleType="fitCenter"
+        app:layout_constraintBottom_toTopOf="@+id/warningText"
+        app:layout_constraintDimensionRatio="H,3:4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/progressContainer"
+        app:layout_constraintVertical_chainStyle="packed"/>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/warningText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="8dp"
+        android:text="Wait for the camera button to turn green for ideal imaging conditions."
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:textSize="@dimen/text_medium"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMaxTextSize="20sp"
+        android:autoSizeMinTextSize="12sp"
+        android:textStyle="bold"
+        android:visibility="visible"
+        android:layout_marginStart="@dimen/_16dp"
+        android:layout_marginEnd="@dimen/_16dp"
+        app:layout_constraintBottom_toTopOf="@+id/captureButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/previewView"
+        app:layout_constraintWidth_percent="0.9"/>
+
+    <LinearLayout
+        android:id="@+id/progressContainer"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="7"
+        android:layout_marginStart="@dimen/_10dp"
+        android:layout_marginEnd="@dimen/_10dp"
+        android:layout_marginTop="@dimen/_10dp"
+        android:progressDrawable="@drawable/progress_style"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.9">
+
+        <View
+            android:id="@+id/progressSegment1"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_5dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/progress_segment_background"/>
+
+        <View
+            android:id="@+id/progressSegment2"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_5dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/progress_segment_background"/>
+
+        <View
+            android:id="@+id/progressSegment3"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_5dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/progress_segment_background"/>
+
+        <View
+            android:id="@+id/progressSegment4"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_5dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/progress_segment_background"/>
+
+        <View
+            android:id="@+id/progressSegment5"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_5dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/progress_segment_background"/>
+
+        <View
+            android:id="@+id/progressSegment6"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_5dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/progress_segment_background"/>
+
+        <View
+            android:id="@+id/progressSegment7"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/_5dp"
+            android:layout_weight="1"
+            android:background="@drawable/progress_segment_background"/>
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/backButton"
+        android:layout_width="@dimen/_40dp"
+        android:layout_height="@dimen/_40dp"
+        android:layout_margin="@dimen/_12dp"
+        android:background="@null"
+        android:backgroundTint="@null"
+        android:src="@drawable/arrow_left_icon"
+        android:visibility="visible"
+        android:contentDescription="@string/back_button_desc"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/white" />
+
+    <LinearLayout
+        android:id="@+id/linearLayout5"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_8dp"
+        android:layout_marginEnd="@dimen/_8dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        app:layout_constraintEnd_toStartOf="@+id/helpButton"
+        app:layout_constraintStart_toEndOf="@+id/backButton"
+        app:layout_constraintTop_toTopOf="@+id/backButton">
+
+        <ImageView
+            android:id="@+id/capture_img"
+            android:layout_width="@dimen/_24dp"
+            android:layout_height="@dimen/_24dp"
+            android:src="@drawable/move_arrow"
+            android:contentDescription="@string/move_arrow_desc"/>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/image_capture_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/_8dp"
+            android:text="Move to different distance"
+            android:textColor="@color/white"
+            android:textSize="@dimen/text_small"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMaxTextSize="16sp"
+            android:autoSizeMinTextSize="12sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/helpButton"
+        android:layout_width="@dimen/_40dp"
+        android:layout_height="@dimen/_40dp"
+        android:background="@null"
+        android:backgroundTint="@null"
+        android:src="@drawable/help_icon"
+        android:layout_margin="@dimen/_12dp"
+        android:visibility="visible"
+        android:contentDescription="@string/help_button_desc"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <ImageButton
+        android:id="@+id/flash_button"
+        android:layout_width="@dimen/_40dp"
+        android:layout_height="@dimen/_40dp"
+        android:background="@drawable/flash_button_bg"
+        android:scaleType="centerInside"
+        android:src="@drawable/flash_on"
+        android:contentDescription="@string/flash_button_desc"
+        app:layout_constraintBottom_toBottomOf="@+id/captureButton"
+        app:layout_constraintEnd_toStartOf="@+id/captureButton"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/captureButton"
+        android:layout_marginEnd="@dimen/_16dp"/>
+
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/permissionTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_20dp"
+        android:layout_marginEnd="@dimen/_20dp"
+        android:layout_marginBottom="@dimen/_20dp"
+        android:text="@string/camera_permission_description"
+        android:textColor="@color/white"
+        android:textAlignment="center"
+        android:visibility="invisible"
+        android:autoSizeTextType="uniform"
+        app:layout_constraintBottom_toTopOf="@+id/permissionButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.8"/>
+
+    <com.auxilliumhealth.woundtissueclassification.Utils.FocusCircle
+        android:id="@+id/focusIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@+id/previewView"
+        app:layout_constraintEnd_toEndOf="@+id/previewView"
+        app:layout_constraintStart_toStartOf="@+id/previewView"
+        app:layout_constraintTop_toTopOf="@+id/previewView"
+        android:visibility="gone" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/permissionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/request_permission"
+        android:visibility="invisible"
+        android:backgroundTint="@color/Theme"
+        android:minWidth="@dimen/_120dp"
+        app:cornerRadius="2dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/permissionTextView"/>
+
+    <ImageButton
+        android:id="@+id/captureButton"
+        android:layout_width="@dimen/_60dp"
+        android:layout_height="@dimen/_60dp"
+        android:visibility="visible"
+        android:src="@drawable/camera_icon"
+        android:background="@null"
+        android:scaleType="centerCrop"
+        android:elevation="2dp"
+        android:backgroundTint="@null"
+        android:contentDescription="@string/capture_button_desc"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="@dimen/_30dp"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

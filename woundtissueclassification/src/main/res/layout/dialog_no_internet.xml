@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:background="@drawable/dialog_background"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/tv_no_internet"
+        android:text="No Internet Connection"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="@android:color/black"
+        android:layout_marginBottom="8dp"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <TextView
+        android:text="Please check your Wi-Fi or mobile data settings."
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/Theme"
+        app:cornerRadius="@dimen/_10dp"
+        android:textColor="@color/white"
+        android:textAllCaps="false"
+        android:text="Open Settings"
+        android:layout_marginBottom="8dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_retry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/Theme"
+        app:cornerRadius="@dimen/_10dp"
+        android:textColor="@color/white"
+        android:textAllCaps="false"
+        android:text="Retry"/>
+
+</LinearLayout>

@@ -1,0 +1,57 @@
+package com.auxilliumhealth.woundtissueclassification.Model;
+
+import com.google.gson.annotations.SerializedName;
+
+public class WoundLocationRequest {
+    @SerializedName("userId")
+    private String userId;
+
+    @SerializedName("description")
+    private String description;
+
+    @SerializedName("woundId")
+    private String woundId;
+
+    @SerializedName("woundLocation")
+    private String woundLocation;
+
+    public WoundLocationRequest(String userId, String description, String woundId, String woundLocation) {
+        this.userId = userId;
+        this.description = description;
+        this.woundId = woundId;
+        this.woundLocation = woundLocation;
+    }
+
+    // Getters and setters
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getWoundId() {
+        return woundId;
+    }
+
+    public void setWoundId(String woundId) {
+        this.woundId = woundId;
+    }
+
+    public String getWoundLocation() {
+        return woundLocation;
+    }
+
+    public void setWoundLocation(String woundLocation) {
+        this.woundLocation = woundLocation;
+    }
+}

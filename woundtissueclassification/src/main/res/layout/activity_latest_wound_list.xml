@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white"
+    >
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/coord_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:background="@color/white"
+        >
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:fitsSystemWindows="true"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar2"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:layout_scrollFlags="scroll|enterAlways">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <ImageView
+                    android:id="@+id/back_img"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:src="@drawable/arrow_left_icon"
+                    app:tint="@color/black" />
+
+
+            </RelativeLayout>
+        </com.google.android.material.appbar.MaterialToolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+    <FrameLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/app_bar2"
+        android:layout_marginBottom="?actionBarSize"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/header_txt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="@dimen/_20dp"
+                android:text="Select the old wound which you going to capture"
+                android:textAlignment="center"
+                android:textColor="@color/black" />
+            <com.facebook.shimmer.ShimmerFrameLayout
+                android:id="@+id/shimmer_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_100dp"
+                        android:layout_margin="@dimen/_10dp"
+                        app:cardBackgroundColor="@color/shimmer_background"
+                        app:strokeColor="@color/shimmer_background"
+                        android:layout_weight="1"/>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_100dp"
+                        android:layout_margin="@dimen/_10dp"
+                        app:cardBackgroundColor="@color/shimmer_background"
+                        app:strokeColor="@color/shimmer_background"
+                        android:layout_weight="1"/>
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_100dp"
+                        android:layout_margin="@dimen/_10dp"
+                        app:cardBackgroundColor="@color/shimmer_background"
+                        app:strokeColor="@color/shimmer_background"
+                        android:layout_weight="1"/>
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_100dp"
+                        android:layout_margin="@dimen/_10dp"
+                        app:cardBackgroundColor="@color/shimmer_background"
+                        app:strokeColor="@color/shimmer_background"
+                        android:layout_weight="1"/>
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_100dp"
+                        android:layout_margin="@dimen/_10dp"
+                        app:cardBackgroundColor="@color/shimmer_background"
+                        app:strokeColor="@color/shimmer_background"
+                        android:layout_weight="1"/>
+
+                </LinearLayout>
+
+            </com.facebook.shimmer.ShimmerFrameLayout>
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/oldwound_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                >
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/old_recyclerview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/_200dp"
+                        android:orientation="vertical"/>
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+        </LinearLayout>
+    </FrameLayout>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/new_wound_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_gravity="bottom"
+        android:layout_margin="@dimen/_20dp"
+        android:backgroundTint="@color/white"
+        android:paddingTop="@dimen/_15dp"
+        android:paddingBottom="@dimen/_15dp"
+        android:visibility="gone"
+        android:text="Add new wound"
+        android:textColor="@color/Theme"
+        android:textSize="@dimen/large_medium_text_size"
+        app:cornerRadius="@dimen/_10dp"
+        app:strokeColor="@color/Theme"
+        app:strokeWidth="2dp" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

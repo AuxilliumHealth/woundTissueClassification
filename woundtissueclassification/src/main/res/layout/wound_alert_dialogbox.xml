@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="370dp"
+    android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_gravity="center_horizontal"
+    android:background="@drawable/dialog_box_background"
+    android:layout_margin="@dimen/_10dp"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/_15dp"
+        android:layout_marginEnd="@dimen/_15dp"
+        android:background="@color/white"
+        android:orientation="vertical">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/textinput_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/_20dp"
+            android:textAlignment="center"
+            android:gravity="center"
+            android:text="Hurray! Calibration has been done"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginStart="@dimen/_20dp"
+            android:layout_marginEnd="@dimen/_20dp"
+            android:textSize="@dimen/text_medium"/>
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/score_img"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_centerInParent="true"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+
+            android:layout_gravity="center_horizontal"
+            app:lottie_rawRes="@raw/calidone"
+            tools:ignore="MissingConstraints" />
+
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="@dimen/_30dp"
+            >
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/old_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="165dp"
+                android:text="Skip"
+                android:layout_marginStart="@dimen/_20dp"
+                app:strokeWidth="2dp"
+                android:textColor="@color/Theme"
+                android:backgroundTint="@color/white"
+                app:strokeColor="@color/Theme"
+                android:textSize="@dimen/text_medium"
+                android:layout_marginBottom="@dimen/_10dp"
+                app:cornerRadius="@dimen/_20dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/new_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:cornerRadius="@dimen/_20dp"
+                android:layout_marginEnd="@dimen/_20dp"
+                android:textSize="@dimen/text_medium"
+                android:layout_alignParentEnd="true"
+                android:text="Capture wound"/>
+
+        </RelativeLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

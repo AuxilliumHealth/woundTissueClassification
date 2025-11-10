@@ -39,8 +39,8 @@ public class MainActivity extends AppCompatActivity {
 private void launchPreviewWithCallback() {
     woundtissueclassification.launchPreviewWoundList(
             this,
-            "45", // userId
-            "d3ad747ebf8b3555fb6b5ed98e640bff16382ba37d3a61e1d8b18385dec6ba28", // https://console.woundtele.com
+            "userId", // userId
+            "token", // https://console.woundtele.com
             "#2CA6CC" // primary color
     );
 }

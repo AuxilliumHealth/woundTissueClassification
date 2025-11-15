@@ -16,7 +16,8 @@ import com.auxilliumhealth.woundtissueclassification.LocalDatabase.PreferencesHe
 public class woundtissueclassification {
     private static final String TAG = "woundtissueclassification";
 
-    public static void woundtissueclassification(Context context, String userId, String token, String colorHex) {
+    public static void woundtissueclassification(Context context, String userId, String token, String colorHex,  boolean woundScoreRequired
+    ) {
         if (context == null) {
             Log.e(TAG, "Context cannot be null");
             return;
@@ -30,14 +31,14 @@ public class woundtissueclassification {
                     maxFocusDistance != null && !maxFocusDistance.isEmpty());
 
             if (hasFocusData) {
-                launchWoundLocation(context, userId, token, colorHex);
+                launchWoundLocation(context, userId, token, colorHex,woundScoreRequired);
             } else {
-                launchCalibration(context, userId, token, colorHex);
+                launchCalibration(context, userId, token, colorHex,woundScoreRequired);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in woundLocation: " + e.getMessage(), e);
             // Fallback to calibration on error
-            launchCalibration(context, userId, token, colorHex);
+            launchCalibration(context, userId, token, colorHex,woundScoreRequired);
         }
     }
     public static void woundtissueclassificationWithLauncher(
@@ -45,7 +46,8 @@ public class woundtissueclassification {
             Context context,
             String userId,
             String token,
-            String colorHex
+            String colorHex,
+            boolean woundScoreRequired
     ) {
         if (context == null) {
             Log.e(TAG, "Context cannot be null");
@@ -71,9 +73,9 @@ public class woundtissueclassification {
             // Pass extras
             intent.putExtra("userId", userId != null ? userId : "");
             intent.putExtra("token", token != null ? token : "");
-            intent.putExtra("primaryColor", (colorHex != null && colorHex.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) ? colorHex : "#1A1A2E");
 
-            // ✅ Launch via ActivityResultLauncher
+            intent.putExtra("primaryColor", (colorHex != null && colorHex.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) ? colorHex : "#1A1A2E");
+            intent.putExtra("woundScoreRequired", woundScoreRequired);
             launcher.launch(intent);
 
         } catch (Exception e) {
@@ -84,12 +86,13 @@ public class woundtissueclassification {
     public static void resetCalibration(Context context) {
         PreferencesHelper.signOut(context);
     }
-    public static void launchWoundLocation(Context context, String userId, String token, String colorHex) {
+    public static void launchWoundLocation(Context context, String userId, String token, String colorHex, boolean woundScoreRequired) {
         try {
             Intent intent = new Intent(context, LatestWoundListActivity.class);
             intent.putExtra("userId", validateString(userId));
             intent.putExtra("token", validateString(token));
             intent.putExtra("primaryColor", validateColorHex(colorHex));
+            intent.putExtra("woundScoreRequired", woundScoreRequired);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
             // Verify the activity exists
@@ -98,15 +101,15 @@ public class woundtissueclassification {
             } else {
                 Log.e(TAG, "WoundLocationActivity not found");
                 // Fallback to calibration
-                launchCalibration(context, userId, token, colorHex);
+                launchCalibration(context, userId, token, colorHex,woundScoreRequired);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error launching WoundLocation: " + e.getMessage(), e);
-            launchCalibration(context, userId, token, colorHex);
+            launchCalibration(context, userId, token, colorHex,woundScoreRequired);
         }
     }
 
-    public static void launchCalibration(Context context, String userId, String token, String colorHex) {
+    public static void launchCalibration(Context context, String userId, String token, String colorHex, boolean woundScoreRequired) {
         try {
             Intent intent = new Intent(context, CalibrationActivity.class);
             intent.putExtra("userId", validateString(userId));
@@ -148,11 +151,9 @@ public static void launchPreviewWoundList(Context context, String userId, String
         } else {
             Log.e(TAG, "WoundListActivity not found");
             // Fallback to calibration
-            launchCalibration(context, userId, token, colorHex);
         }
     } catch (Exception e) {
         Log.e(TAG, "Error launching PreviewWoundList: " + e.getMessage(), e);
-        launchCalibration(context, userId, token, colorHex);
     }
 }
 }

@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -36,6 +37,8 @@ public class LatestWoundListActivity extends RootActivity {
         token = getIntent().getStringExtra("token");
         primaryColor = getIntent().getStringExtra("primaryColor");
         woundId = getIntent().getStringExtra("woundId");
+        boolean woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+
         sessionId = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault()).format(new Date());
 
         // Initialize ViewModel
@@ -43,7 +46,7 @@ public class LatestWoundListActivity extends RootActivity {
         binding.newWoundBtn.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         binding.newWoundBtn.setTextColor(Color.parseColor(primaryColor));
         // Observe LiveData
-        observeViewModel();
+        observeViewModel(woundScoreRequired);
 
         // Fetch data
         showLoader();
@@ -57,6 +60,7 @@ public class LatestWoundListActivity extends RootActivity {
             i.putExtra("userId", userId);
             i.putExtra("token", token);
             i.putExtra("woundId", woundId);
+            i.putExtra("woundScoreRequired", woundScoreRequired);
             i.putExtra("primaryColor", primaryColor);
             startActivity(i);
             finish();
@@ -65,7 +69,7 @@ public class LatestWoundListActivity extends RootActivity {
         binding.backImg.setOnClickListener(v -> finish());
     }
 
-    private void observeViewModel() {
+    private void observeViewModel(boolean woundScoreRequired) {
         viewModel.getLatestSessionData().observe(this, latestSessionModel -> {
             hideLoader();
 
@@ -78,9 +82,10 @@ public class LatestWoundListActivity extends RootActivity {
 
                 binding.oldwoundLayout.setVisibility(View.VISIBLE);
                 woundId = String.valueOf(latestSessionModel.getData().size()+1);
+                Log.d("LatestWoundListActivity", "woundId: " + woundId);
                 LinearLayoutManager layoutManager = new LinearLayoutManager(this);
                 binding.oldRecyclerview.setLayoutManager(layoutManager);
-                OldWoundLoctionAdapter adapter = new OldWoundLoctionAdapter(this, latestSessionModel.getData(), userId, token, primaryColor);
+                OldWoundLoctionAdapter adapter = new OldWoundLoctionAdapter(this, latestSessionModel.getData(), userId, token, primaryColor,woundScoreRequired);
                 binding.oldRecyclerview.setAdapter(adapter);
             } else {
                 binding.coordLayout.setVisibility(View.GONE);
@@ -90,6 +95,7 @@ public class LatestWoundListActivity extends RootActivity {
                 i.putExtra("userId", userId);
                 i.putExtra("token", token);
                 i.putExtra("primaryColor", primaryColor);
+                i.putExtra("woundScoreRequired", woundScoreRequired);
                 i.putExtra("woundId", "1");
                 startActivity(i);
                 finish();

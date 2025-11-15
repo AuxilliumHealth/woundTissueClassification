@@ -174,7 +174,7 @@ showLoader();
             String woundScore = woundAnalysis.getWoundScore();
             if (woundScore != null) {
 
-                binding.woundScoreCard.setVisibility(View.VISIBLE);
+                binding.woundScoreLayout.setVisibility(View.VISIBLE);
                 binding.riskLevelValueTextview.setText(woundScore);
 
                 int textColor;

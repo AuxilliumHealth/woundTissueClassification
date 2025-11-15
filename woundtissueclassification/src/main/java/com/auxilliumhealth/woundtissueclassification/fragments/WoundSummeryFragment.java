@@ -52,6 +52,7 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
     byte[] imageBitmap;
     String filePath;
     Repository repository;
+    boolean woundScoreRequired;
     String woundId;
     String TAG = "WoundSummeryFragment";
     String primaryColor = "#000000";
@@ -65,6 +66,7 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
                     String returnedSessionId = data.getStringExtra("sessionId");
                     String returnedUserId = data.getStringExtra("userId");
                     String returnedWoundId = data.getStringExtra("woundId");
+                    boolean returnedWoundScoreRequired = data.getBooleanExtra("woundScoreRequired", true);
                     String returnedToken = data.getStringExtra("token");
 
                     Log.d(TAG, "✅ Received data from SymptomQuestionActivity:");
@@ -114,6 +116,7 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
             frontBackBody = args.getString("frontBackBody");
             woundPartBody = args.getString("woundPartBody");
             partSideBody = args.getString("partSideBody");
+            woundScoreRequired = args.getBoolean("woundScoreRequired");
             woundId = args.getString("woundId");
 
             if (woundId == null || woundId.isEmpty()) {
@@ -338,6 +341,7 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
                     i.putExtra("whereFrom", "woundImage");
                     i.putExtra("woundId", woundId);
                     i.putExtra("woundLocation", woundLocation);
+                    i.putExtra("woundScoreRequired", woundScoreRequired);
                     i.putExtra("sessionId", sessionId);
                     i.putExtra("userId", userId);
                     i.putExtra("woundId", woundId);

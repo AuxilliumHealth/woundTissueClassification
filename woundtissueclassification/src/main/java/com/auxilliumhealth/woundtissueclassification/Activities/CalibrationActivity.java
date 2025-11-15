@@ -31,6 +31,8 @@ public class CalibrationActivity extends AppCompatActivity {
         woundId = getIntent().getStringExtra("woundId");
         token = getIntent().getStringExtra("token");
         primaryColor = getIntent().getStringExtra("primaryColor");
+        boolean woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+
         binding.appBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
         // Java
 
@@ -43,6 +45,7 @@ public class CalibrationActivity extends AppCompatActivity {
             } catch (IllegalArgumentException e) {
                 Log.e(TAG, "Invalid color format: " + primaryColor);
             }
+
         }
 
         // Optional: Set dark icons for light status bar
@@ -57,7 +60,7 @@ public class CalibrationActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR); // dark icons
         }
-        CalibrationAdapter adapter = new CalibrationAdapter(this, binding.viewPager, sessionId, userId, woundId, token,primaryColor);
+        CalibrationAdapter adapter = new CalibrationAdapter(this, binding.viewPager, sessionId, userId, woundId, token,primaryColor,woundScoreRequired);
         binding.viewPager.setAdapter(adapter);
         binding.viewPager.setCurrentItem(0);
         binding.viewPager.setUserInputEnabled(false);
@@ -76,6 +79,7 @@ public class CalibrationActivity extends AppCompatActivity {
             i.putExtra("userId", userId);
             i.putExtra("token", token);
             i.putExtra("primaryColor", primaryColor);
+            i.putExtra("woundScoreRequired", woundScoreRequired);
             startActivity(i);
             finish();
         });

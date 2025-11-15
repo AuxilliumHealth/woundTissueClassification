@@ -16,6 +16,7 @@ public class CalibrationAdapter extends FragmentStateAdapter {
     private final String woundId;
     private final String token;
     private final String primaryColor;
+    private final boolean woundScoreRequired;
 
     public CalibrationAdapter(@NonNull FragmentActivity fragmentActivity,
                               ViewPager2 viewPager,
@@ -23,7 +24,8 @@ public class CalibrationAdapter extends FragmentStateAdapter {
                               String userId,
                               String woundId,
                               String token,
-                              String primaryColor) {
+                              String primaryColor,
+                              boolean woundScoreRequired) {
         super(fragmentActivity);
         this.viewPager = viewPager;
         this.sessionId = sessionId;
@@ -31,6 +33,7 @@ public class CalibrationAdapter extends FragmentStateAdapter {
         this.woundId = woundId;
         this.token = token;
         this.primaryColor = primaryColor;
+        this.woundScoreRequired = woundScoreRequired;
     }
 
     @NonNull
@@ -38,7 +41,7 @@ public class CalibrationAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         // Create fragment with only serializable data
         CalibrationStepFragment fragment =
-                CalibrationStepFragment.newInstance(position + 1, sessionId, userId, woundId, token, primaryColor);
+                CalibrationStepFragment.newInstance(position + 1, sessionId, userId, woundId, token, primaryColor, woundScoreRequired);
 
         // Pass ViewPager separately via setter
         fragment.setViewPager(viewPager);

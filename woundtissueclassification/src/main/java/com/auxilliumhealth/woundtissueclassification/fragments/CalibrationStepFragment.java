@@ -40,9 +40,12 @@ public class CalibrationStepFragment extends Fragment {
     private static final String ARG_WOUND_ID = "woundId";
     private static final String ARG_TOKEN = "token";
     private static final String ARG_PRIMARY_COLOR = "primaryColor";
+    private static final String ARG_WOUND_SCORE_REQUIRED = "woundScoreRequired";
+
 
     private int step;
     private String sessionId, userId, woundId, token, primaryColor;
+    private boolean woundScoreRequired;
 
     private ViewPager2 viewPager;
     private CalibrationViewModel calibrationViewModel;
@@ -62,7 +65,7 @@ public class CalibrationStepFragment extends Fragment {
         // Required empty public constructor
     }
 
-    public static CalibrationStepFragment newInstance(int step, String sessionId, String userId, String woundId, String token, String primaryColor) {
+    public static CalibrationStepFragment newInstance(int step, String sessionId, String userId, String woundId, String token, String primaryColor, boolean woundScoreRequired) {
         CalibrationStepFragment fragment = new CalibrationStepFragment();
         Bundle args = new Bundle();
         args.putInt(ARG_STEP, step);
@@ -71,6 +74,7 @@ public class CalibrationStepFragment extends Fragment {
         args.putString(ARG_WOUND_ID, woundId);
         args.putString(ARG_TOKEN, token);
         args.putString(ARG_PRIMARY_COLOR, primaryColor);
+        args.putBoolean(ARG_WOUND_SCORE_REQUIRED, woundScoreRequired);
         fragment.setArguments(args);
         return fragment;
     }
@@ -89,6 +93,7 @@ public class CalibrationStepFragment extends Fragment {
             woundId = getArguments().getString(ARG_WOUND_ID);
             token = getArguments().getString(ARG_TOKEN);
             primaryColor = getArguments().getString(ARG_PRIMARY_COLOR);
+            woundScoreRequired = getArguments().getBoolean(ARG_WOUND_SCORE_REQUIRED);
         }
         calibrationViewModel = new ViewModelProvider(requireActivity()).get(CalibrationViewModel.class);
     }
@@ -361,6 +366,8 @@ public class CalibrationStepFragment extends Fragment {
             i.putExtra("woundId", woundId);
             i.putExtra("token", token);
             i.putExtra("primaryColor", primaryColor);
+            i.putExtra("woundScoreRequired", woundScoreRequired);
+
             startActivity(i);
             getActivity().finish();
         });

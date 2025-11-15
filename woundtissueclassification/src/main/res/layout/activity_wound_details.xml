@@ -279,8 +279,10 @@
                                 app:cardBackgroundColor="@color/white">
 
                                 <LinearLayout
+                                    android:id="@+id/wound_score_layout"
                                     android:layout_width="match_parent"
                                     android:layout_height="match_parent"
+                                    android:visibility="gone"
                                     android:orientation="vertical">
                                     <com.google.android.material.textview.MaterialTextView
                                         android:layout_width="wrap_content"

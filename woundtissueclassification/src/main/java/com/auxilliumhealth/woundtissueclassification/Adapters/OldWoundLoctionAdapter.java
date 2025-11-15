@@ -37,13 +37,15 @@ public class OldWoundLoctionAdapter extends RecyclerView.Adapter<OldWoundLoction
     String userId;
     String token;
     String colorHex;
+    boolean woundScoreRequired;
 
-    public OldWoundLoctionAdapter(Context context, List<LatestSessionModel.Datum> woundLocationModels, String userId, String token, String colorHex) {
+    public OldWoundLoctionAdapter(Context context, List<LatestSessionModel.Datum> woundLocationModels, String userId, String token, String colorHex,boolean woundScoreRequired) {
         this.mContext = context;
         this.woundLocationModels = woundLocationModels;
         this.userId = userId;
         this.token = token;
         this.colorHex = colorHex;
+        this.woundScoreRequired = woundScoreRequired;
 
         //woundID = PreferencesHelper.getPreference(mContext, PreferencesHelper.PREF_WOUND_COUNT);
         repository = new Repository(mContext);
@@ -88,6 +90,7 @@ public class OldWoundLoctionAdapter extends RecyclerView.Adapter<OldWoundLoction
                 i.putExtra("woundId", dataList.getWoundId());
                 i.putExtra("woundLocation", dataList.getWoundLocation());
                 i.putExtra("sessionId", dataList.getSessionId());
+                i.putExtra("woundScoreRequired", woundScoreRequired);
                 i.putExtra("userId", userId);
                 i.putExtra("token", token);
                 i.putExtra("primaryColor", colorHex);

@@ -21,6 +21,7 @@ public class WoundBackFragment extends Fragment implements View.OnClickListener 
 
     FragmentWoundBackUpperBinding binding;
     String upperLowerbody, frontBackBody, userId, token, primaryColor, woundId;
+    boolean woundScoreRequired;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -38,6 +39,7 @@ public class WoundBackFragment extends Fragment implements View.OnClickListener 
             token = args.getString("token");
             woundId = args.getString("woundId");
             primaryColor = args.getString("primaryColor");
+            woundScoreRequired = args.getBoolean("woundScoreRequired");
 
         }
 
@@ -197,6 +199,7 @@ public class WoundBackFragment extends Fragment implements View.OnClickListener 
                 args.putString("upperLowerbody", isUpperBody ? "Upper" : "Lower");
                 args.putString("partSideBody", partSideBody);
                 args.putString("woundPartBody", woundPartBody);
+                args.putBoolean("woundScoreRequired", woundScoreRequired);
                 args.putByteArray("woundPartImg", byteArray);
                 args.putString("userId", userId);
                 args.putString("token", token);
@@ -229,6 +232,7 @@ public class WoundBackFragment extends Fragment implements View.OnClickListener 
             bundle.putString("token", token);
             bundle.putString("woundId", woundId);
             bundle.putString("primaryColor", primaryColor);
+            bundle.putBoolean("woundScoreRequired", woundScoreRequired);
             fragment.setArguments(bundle);
 
             FragmentTransaction transaction = fragmentManager.beginTransaction();

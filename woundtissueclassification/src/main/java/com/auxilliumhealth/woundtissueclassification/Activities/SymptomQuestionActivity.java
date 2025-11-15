@@ -82,7 +82,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
     private LoadingDialog loadingDialog;
     // View Binding
     private ActivitySymptomQuestionBinding binding;
-
+    private boolean woundScoreRequired = true;
     // Add this flag to track if result was set
     private boolean isResultSet = false;
 
@@ -98,11 +98,21 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             initViews();
             viewModel = new ViewModelProvider(this).get(SymptomViewModel.class);
             setupObservers();
-            loadQuestions();
             setupButtonListeners();
 
             // Start AI processing in background immediately
             startBackgroundAIProcessing();
+
+            // Choose flow based on woundScoreRequired
+            if (woundScoreRequired) {
+                // Show symptom questions flow
+                Log.d(TAG, "Starting symptom questions flow (woundScoreRequired = true)");
+                loadQuestions();
+            } else {
+                // Show direct AI results flow
+                Log.d(TAG, "Starting direct AI results flow (woundScoreRequired = false)");
+                showDirectAIResults();
+            }
 
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreate", e);
@@ -118,10 +128,12 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             if (primaryColor == null || !primaryColor.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")) {
                 primaryColor = "#1A1A2E";
             }
-binding.llPoweredBy.setOnClickListener(v -> {
-    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.auxilliumhealth.ai/"));
-    startActivity(intent);
-});
+
+            binding.llPoweredBy.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.auxilliumhealth.ai/"));
+                startActivity(intent);
+            });
+
             imageUrl = getIntent().getStringExtra("imageUrl");
             lensFocusDistance = getIntent().getStringExtra("lensFocusDistance");
             woundId = getIntent().getStringExtra("woundId");
@@ -130,10 +142,13 @@ binding.llPoweredBy.setOnClickListener(v -> {
             token = getIntent().getStringExtra("token");
             coinType = getIntent().getStringExtra("coinType");
             whereFrom = getIntent().getStringExtra("whereFrom");
+            woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 getWindow().setStatusBarColor(Color.parseColor(primaryColor));
             }
             Log.d(TAG, "sessionId: " + sessionId + " userId: " + userId + " woundId: " + woundId);
+            Log.d(TAG, "woundScoreRequired: " + woundScoreRequired);
 
             setupUIWithPrimaryColor();
 
@@ -141,6 +156,26 @@ binding.llPoweredBy.setOnClickListener(v -> {
             Log.e(TAG, "Error in initViews", e);
             throw new RuntimeException("View initialization failed", e);
         }
+    }
+
+    private void showDirectAIResults() {
+        Log.d(TAG, "Showing direct AI results (woundScoreRequired = false)");
+
+        // Hide symptom question layout
+        binding.symptomQuestionLayout.setVisibility(View.GONE);
+
+        // Show loading immediately
+        showLoadingDialog("Analyzing Image", "Processing wound image...");
+
+        // Set up a timeout for AI processing
+        handler.postDelayed(() -> {
+            if (!isAiProcessingCompleted) {
+                Log.w(TAG, "AI processing timeout - proceeding with available data");
+                hideLoadingDialog();
+                showFinalResults(woundAnalysis, null);
+            }
+            // If AI completes, it will automatically show results via the callback
+        }, 30000); // 30 second timeout
     }
 
     private void setupUIWithPrimaryColor() {
@@ -610,18 +645,39 @@ binding.llPoweredBy.setOnClickListener(v -> {
                         woundAnalysis = gson.fromJson(responseString, WoundAnalysis.class);
                         Log.d(TAG, "Background AI processing completed: " + woundAnalysis.getAiModelData().getDisplayImagePath());
 
-                        // If answers are already submitted, proceed with results
-                        if (isAnswersSubmitted && loadingDialog != null && loadingDialog.isShowing()) {
-                            Log.d(TAG, "AI completed after answers, submitting now...");
-                            submitSymptomsAnswers(woundAnalysis, submitAnswersRequest, token);
+                        // Handle different flows based on woundScoreRequired
+                        if (!woundScoreRequired) {
+                            // Direct AI results flow
+                            runOnUiThread(() -> {
+                                hideLoadingDialog();
+                                showFinalResults(woundAnalysis, null);
+                            });
+                        } else {
+                            // Symptom questions flow - if answers are already submitted, proceed with results
+                            if (isAnswersSubmitted && loadingDialog != null && loadingDialog.isShowing()) {
+                                Log.d(TAG, "AI completed after answers, submitting now...");
+                                submitSymptomsAnswers(woundAnalysis, submitAnswersRequest, token);
+                            }
                         }
                     }
                 } catch (IOException | JsonSyntaxException e) {
                     Log.e(TAG, "Error parsing AI response in background", e);
                     handleBackgroundAIError("AI analysis completed with issues");
+                    if (!woundScoreRequired) {
+                        runOnUiThread(() -> {
+                            hideLoadingDialog();
+                            showFinalResults(null, null);
+                        });
+                    }
                 } catch (Exception e) {
                     Log.e(TAG, "Unexpected error in background AI processing", e);
                     handleBackgroundAIError("AI processing encountered an error");
+                    if (!woundScoreRequired) {
+                        runOnUiThread(() -> {
+                            hideLoadingDialog();
+                            showFinalResults(null, null);
+                        });
+                    }
                 }
             }
 
@@ -631,20 +687,31 @@ binding.llPoweredBy.setOnClickListener(v -> {
                 isAiProcessingCompleted = true;
                 Log.e(TAG, "Background AI processing failed: " + message);
 
-                // If answers are submitted and we're waiting for AI, proceed anyway
-                if (isAnswersSubmitted && loadingDialog != null && loadingDialog.isShowing()) {
-                    Log.w(TAG, "AI failed but answers submitted, proceeding...");
-                    submitSymptomsAnswers(null, submitAnswersRequest, token);
+                if (!woundScoreRequired) {
+                    // Direct AI results flow - show results even if AI failed
+                    runOnUiThread(() -> {
+                        hideLoadingDialog();
+                        showFinalResults(null, null);
+                    });
+                } else {
+                    // Symptom questions flow - if answers are submitted and we're waiting for AI, proceed anyway
+                    if (isAnswersSubmitted && loadingDialog != null && loadingDialog.isShowing()) {
+                        Log.w(TAG, "AI failed but answers submitted, proceeding...");
+                        submitSymptomsAnswers(null, submitAnswersRequest, token);
+                    }
                 }
             }
 
             @Override
             public void onProgressUpdate(int progress) {
                 Log.d(TAG, "Background AI processing progress: " + progress + "%");
-                // Don't update UI since this is background processing
+                if (!woundScoreRequired) {
+                    updateLoadingMessage("Analyzing image... " + progress + "%");
+                }
             }
         });
     }
+
     public static List<Double> convertToDoubleList(String input) {
         if (input == null || input.isEmpty()) {
             return List.of(); // Return an empty list if input is null or empty
@@ -667,7 +734,14 @@ binding.llPoweredBy.setOnClickListener(v -> {
 
     private void showFinalResults(WoundAnalysis result, String woundScore) {
         try {
-            binding.symptomQuestionLayout.setVisibility(View.GONE);
+            // Hide appropriate layouts based on flow
+            if (woundScoreRequired) {
+                binding.symptomQuestionLayout.setVisibility(View.GONE);
+            } else {
+                // For direct AI flow, we might not have the symptom layout visible at all
+                binding.symptomQuestionLayout.setVisibility(View.GONE);
+            }
+
             binding.modelResultLayout.setVisibility(View.VISIBLE);
             binding.resultMaterialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
             binding.resultAppBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
@@ -689,9 +763,9 @@ binding.llPoweredBy.setOnClickListener(v -> {
                 ImageAdapter imageAdapter = new ImageAdapter(SymptomQuestionActivity.this, imageList);
                 binding.processedImageRecyclerview.setAdapter(imageAdapter);
                 imageAdapter.notifyDataSetChanged();
-                if (woundScore != null) {
 
-                    binding.woundScoreCard.setVisibility(View.VISIBLE);
+                if (woundScore != null && woundScoreRequired) {
+                    binding.woundScoreLayout.setVisibility(View.VISIBLE);
                     binding.riskLevelValueTextview.setText(woundScore);
 
                     int textColor;
@@ -716,9 +790,10 @@ binding.llPoweredBy.setOnClickListener(v -> {
                     binding.riskLevelValueTextview.setTextColor(textColor);
                     binding.riskLevelTextview.setTextColor(textColor);
                     binding.woundScoreCard.setCardBackgroundColor(backgroundColor);
+                } else {
+                    // Hide wound score card for direct AI flow
+                    binding.woundScoreCard.setVisibility(View.GONE);
                 }
-
-
 
                 binding.btnFinish.setOnClickListener(v -> {
                     Log.d(TAG, "Finish button clicked - returning success result");
@@ -730,7 +805,6 @@ binding.llPoweredBy.setOnClickListener(v -> {
 
             // Display wound score if available
             if (woundScore != null) {
-                // You can add wound score display logic here
                 Log.d(TAG, "Wound Score: " + woundScore);
             }
 
@@ -780,7 +854,9 @@ binding.llPoweredBy.setOnClickListener(v -> {
             setResult(RESULT_CANCELED);
             finish();
         }
-    }    private void displayAIResults(WoundAnalysis woundAnalysis) {
+    }
+
+    private void displayAIResults(WoundAnalysis woundAnalysis) {
         try {
 
             // Load images with Glide
@@ -814,7 +890,6 @@ binding.llPoweredBy.setOnClickListener(v -> {
     float truncateToOneDecimal(float value) {
         return (int) (value * 10) / 10f;
     }
-
 
     private void loadResultImages(WoundAnalysis aiData) {
         try {
@@ -935,6 +1010,7 @@ binding.llPoweredBy.setOnClickListener(v -> {
                 i.putExtra("token", token);
                 i.putExtra("primaryColor", primaryColor);
                 startActivity(i);
+                finish();
             });
             binding.btnSkip.setOnClickListener(v -> {
                 Log.d(TAG, "Skip button clicked - returning success result");
@@ -1029,10 +1105,10 @@ binding.llPoweredBy.setOnClickListener(v -> {
     @Override
     protected void onDestroy() {
         // If the activity is being destroyed without setting a result, set canceled
-//        if (isFinishing() && !isResultSet) {
-//            Log.d(TAG, "Activity finishing without result set - defaulting to CANCELED");
-//            setResult(RESULT_CANCELED);
-//        }
+        if (isFinishing() && !isResultSet) {
+            Log.d(TAG, "Activity finishing without result set - defaulting to CANCELED");
+            setResult(RESULT_CANCELED);
+        }
 
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);

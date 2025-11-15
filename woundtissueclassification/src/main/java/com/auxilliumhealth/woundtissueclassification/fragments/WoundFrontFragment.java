@@ -22,6 +22,7 @@ public class WoundFrontFragment extends Fragment implements View.OnClickListener
     FragmentWoundFrontUpperBinding binding;
     String upperLowerbody, frontBackBody, userId, token, woundId;
     String primaryColor;
+    boolean woundScoreRequired;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -38,6 +39,7 @@ public class WoundFrontFragment extends Fragment implements View.OnClickListener
             userId = args.getString("userId");
             token = args.getString("token");
             woundId = args.getString("woundId");
+            woundScoreRequired = args.getBoolean("woundScoreRequired");
             primaryColor = args.getString("primaryColor");
 
         }
@@ -228,6 +230,7 @@ public class WoundFrontFragment extends Fragment implements View.OnClickListener
                 args.putString("woundPartBody", woundPartBody);
                 args.putByteArray("woundPartImg", byteArray);
                 args.putString("userId", userId);
+                args.putBoolean("woundScoreRequired", woundScoreRequired);
                 args.putString("token", token);
                 args.putString("woundId", woundId);
                 args.putString("primaryColor", primaryColor);
@@ -258,6 +261,7 @@ public class WoundFrontFragment extends Fragment implements View.OnClickListener
             bundle.putString("token", token);
             bundle.putString("woundId", woundId);
             bundle.putString("primaryColor", primaryColor);
+            bundle.putBoolean("woundScoreRequired", woundScoreRequired);
             fragment.setArguments(bundle);
 
             FragmentTransaction transaction = fragmentManager.beginTransaction();

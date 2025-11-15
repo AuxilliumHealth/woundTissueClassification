@@ -34,6 +34,7 @@ public class WoundLocationActivity extends RootActivity {
 
         userId = getIntent().getStringExtra("userId");
         token = getIntent().getStringExtra("token");
+        boolean woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
 
         woundLocation = getIntent().getStringExtra("woundLocation");
         primaryColor = getIntent().getStringExtra("primaryColor");
@@ -59,6 +60,7 @@ public class WoundLocationActivity extends RootActivity {
         args.putString("token", token);
         args.putString("woundId", woundId);
         args.putString("primaryColor", primaryColor);
+        args.putBoolean("woundScoreRequired", woundScoreRequired);
         fragment.setArguments(args);
 
         FragmentManager fm = getSupportFragmentManager();

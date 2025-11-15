@@ -34,24 +34,23 @@ public class MainActivity extends AppCompatActivity {
         previewButton.setOnClickListener(v -> launchPreviewWithCallback());
 
         //reset calibration
-//        woundtissueclassification.resetCalibration(this);
+        woundtissueclassification.resetCalibration(this);
     }
 private void launchPreviewWithCallback() {
     woundtissueclassification.launchPreviewWoundList(
             this,
-            "userId", // userId
+            "user_Id", // userId
             "token", // https://console.woundtele.com
-            "#2CA6CC" // primary color
-    );
+            "#2CA6CC");
 }
     private void launchWithCallback() {
-
             woundtissueclassification.woundtissueclassificationWithLauncher(
                     woundTissueLauncher,
                     this,
-                    "userId", // userId
+                    "user_id", // userId
                     "token", // https://console.woundtele.com
-                    "#2CA6CC" // primary color
+                    "#2CA6CC",//
+                    false
             );
 
     }

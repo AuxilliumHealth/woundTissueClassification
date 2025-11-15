@@ -17,3 +17,6 @@
 local.properties
 /woundtissueclassification/build
 /*.aar
+
+# Environment variables
+.env

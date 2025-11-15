@@ -28,6 +28,7 @@ public class WoundLocationFragment extends Fragment implements View.OnClickListe
     private String token;
     private String primaryColor;
     private String woundId;
+    private boolean woundScoreRequired;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -45,6 +46,7 @@ public class WoundLocationFragment extends Fragment implements View.OnClickListe
             token = args.getString("token");
             woundId = args.getString("woundId");
             primaryColor = args.getString("primaryColor");
+            woundScoreRequired = args.getBoolean("woundScoreRequired");
         }
     }
 
@@ -102,6 +104,7 @@ public class WoundLocationFragment extends Fragment implements View.OnClickListe
         bundle.putString("token", token);
         bundle.putString("primaryColor", primaryColor);
         bundle.putString("woundId", woundId);
+        bundle.putBoolean("woundScoreRequired", woundScoreRequired);
         fragment.setArguments(bundle);
 
         FragmentManager fm = getActivity().getSupportFragmentManager();

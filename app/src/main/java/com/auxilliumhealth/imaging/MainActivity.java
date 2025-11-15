@@ -39,17 +39,17 @@ public class MainActivity extends AppCompatActivity {
 private void launchPreviewWithCallback() {
     woundtissueclassification.launchPreviewWoundList(
             this,
-            "user_Id", // userId
-            "token", // https://console.woundtele.com
+            "45", // userId
+            "a89cb7571cb312625d34a18cdf23a88a154d1c043ffc3cf755631f6d81f03648", // https://console.woundtele.com
             "#2CA6CC");
 }
     private void launchWithCallback() {
             woundtissueclassification.woundtissueclassificationWithLauncher(
                     woundTissueLauncher,
                     this,
-                    "user_id", // userId
-                    "token", // https://console.woundtele.com
-                    "#2CA6CC",//
+                    "45", // userId
+                    "a89cb7571cb312625d34a18cdf23a88a154d1c043ffc3cf755631f6d81f03648", // https://console.woundtele.com
+                    "#2CA6CC",
                     false
             );
 

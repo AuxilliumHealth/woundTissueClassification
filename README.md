@@ -64,7 +64,7 @@ If using GitHub Packages:
 
 ```kotlin
 dependencies {
-    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.0")
+    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.1")
 }
 ```
 
@@ -118,7 +118,8 @@ public class MainActivity extends AppCompatActivity {
                 this,
                 "user-Identity",
                 "token",
-                "#2196F3"
+                "#2196F3",
+                false //riskScoreRequired
             );
     }
 }

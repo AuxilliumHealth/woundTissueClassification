@@ -10,7 +10,7 @@ kotlin {
 }
 
 group = "com.auxilliumhealth"
-version = "1.0.0"
+version = "1.0.1"
 
 android {
     namespace = "com.auxilliumhealth.woundtissueclassification"
@@ -63,7 +63,7 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "com.auxilliumhealth"
             artifactId = "woundtissueclassification"
-            version = "1.0.0"
+            version = "1.0.1"
 
             afterEvaluate {
                 from(components["release"])

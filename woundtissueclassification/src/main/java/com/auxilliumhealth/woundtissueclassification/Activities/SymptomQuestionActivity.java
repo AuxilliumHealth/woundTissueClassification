@@ -1009,6 +1009,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
                 i.putExtra("woundId", woundId);
                 i.putExtra("token", token);
                 i.putExtra("primaryColor", primaryColor);
+                i.putExtra("woundScoreRequired", woundScoreRequired);
                 startActivity(i);
                 finish();
             });

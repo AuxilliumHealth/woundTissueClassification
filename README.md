@@ -64,7 +64,7 @@ If using GitHub Packages:
 
 ```kotlin
 dependencies {
-    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.1")
+    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.2")
 }
 ```
 

@@ -49,8 +49,8 @@ private void launchPreviewWithCallback() {
                     this,
                     "user_id", // userId
                     "token", // https://console.woundtele.com
-                    "#2CA6CC",
-                    false
+                    "#2CA6CC", // primary color
+                    false //riskScore optional
             );
 
     }

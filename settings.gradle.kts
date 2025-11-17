@@ -18,14 +18,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/AuxilliumHealth/woundTissueClassification")
-            credentials {
-                username = providers.gradleProperty("GITHUB_USER").getOrElse(System.getenv("GITHUB_USER") ?: "")
-                password = providers.gradleProperty("GITHUB_TOKEN").getOrElse(System.getenv("GITHUB_TOKEN") ?: "")
-             }
-        }
+
     }
 }
 

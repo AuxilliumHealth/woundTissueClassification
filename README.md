@@ -1,66 +1,68 @@
 # Auxillium Health Wound Tissue Classification SDK – Android
 
-An Android SDK and sample app for capturing wound images, classifying tissue, and previewing previously captured wounds.
-
----
+An Android SDK and sample app for capturing wound images, classifying wound tissue, and previewing previously captured wounds.
 
 ## Repository Structure
 
 This repository contains:
 
-* **`app/`** – Sample app demonstrating SDK integration
-* **`woundtissueclassification/`** – Android library (SDK) providing UI flows, CameraX integration, and networking
-
----
+- **`app/`** – Sample app demonstrating SDK integration
+- **`woundtissueclassification/`** – Android library (SDK) providing UI flows, CameraX integration, and networking
 
 ## Requirements
 
-* **Android Studio:** Giraffe (AGP 8+)
-* **Android SDK:** `compileSdk 36`, `minSdk 26`, `targetSdk 36`
-* **JDK:** 17+ (toolchain configured in Gradle)
-* **Device Requirements:**
+- **Android Studio:** Giraffe (AGP 8+)
+- **Android SDK:** `compileSdk 36`, `minSdk 26`, `targetSdk 36`
+- **JDK:** 17+ (toolchain configured in Gradle)
 
-  * Camera (CameraX supported)
-  * Internet access
+**Device Requirements:**
 
----
+- Camera (CameraX supported)
+- Internet access
 
 ## Repositories
 
-Ensure your `repositories` block includes:
+### Groovy DSL (`settings.gradle`)
 
-```kotlin
-repositories {
+```groovy
+dependencyResolutionManagement {
+  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+  repositories {
     google()
     mavenCentral()
-    // Add GitHub Packages or JitPack if using remote artifacts
+    maven { url 'https://jitpack.io' }
+  }
 }
 ```
 
----
+### Kotlin DSL (`settings.gradle.kts`)
+
+```kotlin
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+```
 
 ## Installation
 
-You can integrate the SDK in two ways:
+### Option A: Include the Module
 
-### Option A: Include the Module (Used in This Repo)
+```kotlin
+include(":woundtissueclassification")
+```
 
-1. Add the module in `settings.gradle.kts`:
+```kotlin
+dependencies {
+    implementation(project(":woundtissueclassification"))
+}
+```
 
-   ```kotlin
-   include(":woundtissueclassification")
-   ```
-2. Add dependency in your app module’s `build.gradle.kts`:
-
-   ```kotlin
-   dependencies {
-       implementation(project(":woundtissueclassification"))
-   }
-   ```
-
-### Option B: Use the Published Artifact
-
-If using GitHub Packages:
+### Option B: Published Artifact
 
 ```kotlin
 dependencies {
@@ -68,17 +70,14 @@ dependencies {
 }
 ```
 
----
-
 ## Permissions
-
-Add the following permissions to your app’s `AndroidManifest.xml`:
 
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 ```
+
 
 > Note: Request **camera permission at runtime** on Android 6.0 (API 23) and above.
 
@@ -100,6 +99,10 @@ public class MainActivity extends AppCompatActivity {
             // TODO: Handle result if your flow returns data
             // Example: inspect result.getResultCode() and result.getData()
         });
+// Reset calibration data if needed
+private void resetCalibration() {
+    com.auxilliumhealth.woundtissueclassification.woundtissueclassification.resetCalibration(context);
+}
 
     private void launchCapture() {
         com.auxilliumhealth.woundtissueclassification.woundtissueclassification
@@ -127,11 +130,53 @@ public class MainActivity extends AppCompatActivity {
 
 ### Optional Calibration Reset
 
-```java
-// Reset calibration data if needed
-// com.auxilliumhealth.woundtissueclassification.woundtissueclassification.resetCalibration(context);
+
+Example (`MainActivity.kt` in the sample `app/`):
+
+```kotlin
+class MainActivity : AppCompatActivity() {
+
+    private val woundTissueLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            // TODO: Handle result if your flow returns data
+            // Example: inspect result.resultCode and result.data
+        }
+    private fun resetCalibration() {
+        com.auxilliumhealth.woundtissueclassification.woundtissueclassification
+            .resetCalibration(context)
+    }
+
+
+    private fun launchCapture() {
+        com.auxilliumhealth.woundtissueclassification.woundtissueclassification
+            .woundtissueclassificationWithLauncher(
+                woundTissueLauncher,
+                this,
+                "user-Identity",   // your userId
+                "token",           // Bearer token from https://console.woundtele.com
+                "#2196F3"          // primary color (hex or theme key)
+            )
+    }
+
+    private fun launchPreview() {
+        com.auxilliumhealth.woundtissueclassification.woundtissueclassification
+            .launchPreviewWoundList(
+                this,
+                "user-Identity",// your userId
+                "token", // Bearer token from https://console.woundtele.com
+                "#2196F3", // primary color (hex or theme key)
+                false // riskScoreRequired
+            )
+    }
+}
 ```
 
+### Optional Calibration Reset
+
+```kotlin
+// Reset calibration data if needed
+ com.auxilliumhealth.woundtissueclassification.woundtissueclassification.resetCalibration(context)
+```
 ---
 
 ## Tokens and Backend
@@ -139,8 +184,8 @@ public class MainActivity extends AppCompatActivity {
 * The SDK communicates with Auxillium Health APIs via **Retrofit**.
 * **Base URLs:**
 
-  * API: `https://api.woundtele.com`
-  * Calibration: `https://calibration.woundtele.com/`
+    * API: `https://api.woundtele.com`
+    * Calibration: `https://calibration.woundtele.com/`
 
 You must pass a valid **Bearer token** obtained from the [Auxillium Health Console](https://console.woundtele.com).
 
@@ -173,11 +218,11 @@ Adjust based on your app’s build configuration.
 
 * The SDK uses the following CameraX dependencies:
 
-  * `camera-core`
-  * `camera-camera2`
-  * `camera-lifecycle`
-  * `camera-view`
-  * `camera-extensions`
+    * `camera-core`
+    * `camera-camera2`
+    * `camera-lifecycle`
+    * `camera-view`
+    * `camera-extensions`
 * Ensure your project matches the SDK’s `compileSdk` version.
 * The sample app specifies:
 
@@ -198,6 +243,99 @@ Adjust based on your app’s build configuration.
 | Camera not working                | Missing permissions or emulator usage  | Test on a physical device and verify runtime permission handling                 |
 
 ---
+# 📦 Wound Data Storage Structure
+
+This document explains how wound-related data is organized in a clear hierarchical format:
+
+**User → Wound → Imaging Session**
+
+This structure ensures clean organization, easy querying, and efficient tracking of wound healing progress over time.
+
+---
+
+## 📘 Hierarchical Data Model
+
+```
+User (userId)
+    ├── Wound (woundId_1)
+    │       ├── ImagingSession (sessionId_1)
+    │       ├── ImagingSession (sessionId_2)
+    │       └── ImagingSession (sessionId_3)
+    │
+    ├── Wound (woundId_2)
+    │       ├── ImagingSession (sessionId_4)
+    │       └── ImagingSession (sessionId_5)
+    │
+    └── Wound (woundId_3)
+            └── ImagingSession (sessionId_6)
+```
+
+---
+
+## 🧭 Explanation
+
+### **1️⃣ User**
+- Identified by **userId**
+- Represents a patient in the system
+- A user can have **multiple wounds**
+
+### **2️⃣ Wound**
+- Identified by **woundId**
+- Belongs to a specific **userId**
+- **A particular wound can have multiple imaging sessions for tracking the healing progress over time**
+- Allows long-term comparison and monitoring
+
+### **3️⃣ Imaging Session**
+- Identified by **sessionId**
+- Represents a single wound imaging event
+- Stores:
+    - Raw image(s)
+    - Processed output
+    - Pixel analysis
+    - Measurements
+    - Metadata
+    - Timestamps
+- Multiple sessions help visualize improvement or deterioration of a wound over days/weeks
+
+---
+
+## 📄 Example JSON Structure
+
+```json
+{
+  "userId": "USER_001",
+  "wounds": [
+    {
+      "woundId": "WOUND_01",
+      "sessions": [
+        { "sessionId": "SESSION_01" },
+        { "sessionId": "SESSION_02" },
+        { "sessionId": "SESSION_03" }
+      ]
+    },
+    {
+      "woundId": "WOUND_02",
+      "sessions": [
+        { "sessionId": "SESSION_04" },
+        { "sessionId": "SESSION_05" }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 🗂 Relationship Summary
+
+| Entity             | Identifier | Relationship                                    |
+|-------------------|------------|--------------------------------------------------|
+| **User**          | userId     | Can have multiple wounds                         |
+| **Wound**         | woundId    | Belongs to a user; has multiple imaging sessions |
+| **ImagingSession**| sessionId  | Belongs to a wound                               |
+
+---
+
 
 ## Tissue Classification Reference
 

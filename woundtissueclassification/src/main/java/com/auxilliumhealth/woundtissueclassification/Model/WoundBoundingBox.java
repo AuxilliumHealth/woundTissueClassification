@@ -31,7 +31,6 @@ public class WoundBoundingBox {
     private float BoundingBoxInreaseThreaseHold = 0.1f;
 
     public WoundBoundingBox(Context context, String inputFilePath , int[] inputSize, float postProcessingThreshold) {
-        Log.d(TAG, "WoundBoundingBox: inputFilePath = " + inputFilePath + ", inputSize = " + Arrays.toString(inputSize));
         this.context = context;
         this.height = inputSize[0]; // should be 320
         this.width = inputSize[1];  // should be 320
@@ -41,30 +40,20 @@ public class WoundBoundingBox {
     }
 
     public void run() {
-        Log.d(TAG, "run: start");
 
         try {
-            Log.d(TAG, "Input bitmap size: " + inputBitmap.getWidth() + "x" + inputBitmap.getHeight());
             WoundteleCoinDetectionModel model = WoundteleCoinDetectionModel.newInstance(this.context);
 
-            Log.d(TAG, "Converting input bitmap to tensor image...");
             TensorImage normalizedInputImageTensor = new TensorImage(DataType.UINT8);
             normalizedInputImageTensor.load(inputBitmap);
 
-            Log.d(TAG, "Tensor shape: " + Arrays.toString(normalizedInputImageTensor.getTensorBuffer().getShape()));
-            Log.d(TAG, "Running model inference...");
 
             // Model Inference
             WoundteleCoinDetectionModel.Outputs outputs = model.process(normalizedInputImageTensor);
-            Log.d(TAG, "Model inference complete");
 
             TensorBuffer locations = outputs.getLocationsAsTensorBuffer();
-            TensorBuffer classes = outputs.getClassesAsTensorBuffer();
             TensorBuffer scores = outputs.getScoresAsTensorBuffer();
-            TensorBuffer numberOfDetections = outputs.getNumberOfDetectionsAsTensorBuffer();
 
-            Log.d(TAG, "locations shape: " + Arrays.toString(locations.getShape()));
-            Log.d(TAG, "scores shape: " + Arrays.toString(scores.getShape()));
 
             float[] locationsArray = locations.getFloatArray();
             float[][][] outputBoundingBoxes = reshape(locationsArray, 1, 40, 4);

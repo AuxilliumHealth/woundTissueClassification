@@ -59,23 +59,15 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
     private WoundLocationViewModel viewModel;
     private String woundLocation;
     private ActivityWoundSummeryBinding binding;
-    private final ActivityResultLauncher<Intent> symptomLauncher =
+    private final ActivityResultLauncher<Intent> woundSummeryLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Intent data = result.getData();
-                    String returnedSessionId = data.getStringExtra("sessionId");
-                    String returnedUserId = data.getStringExtra("userId");
-                    String returnedWoundId = data.getStringExtra("woundId");
-                    boolean returnedWoundScoreRequired = data.getBooleanExtra("woundScoreRequired", true);
-                    String returnedToken = data.getStringExtra("token");
-
-                    Log.d(TAG, "✅ Received data from SymptomQuestionActivity:");
-                    Log.d(TAG, "sessionId: " + returnedSessionId);
-                    Log.d(TAG, "userId: " + returnedUserId);
-                    Log.d(TAG, "woundId: " + returnedWoundId);
-                    Log.d(TAG, "token: " + returnedToken);
-
-                    // TODO: Do something with the returned data (e.g. navigate or update UI)
+                if (result.getResultCode() == RESULT_OK ) {
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("woundId", woundId);
+                    resultIntent.putExtra("sessionId", sessionId);
+                    resultIntent.putExtra("userId", userId);
+                    getActivity().setResult(RESULT_OK, resultIntent);
+                    getActivity().finish();
                 } else {
                     Log.w(TAG, "❌ No result returned or operation cancelled.");
                 }
@@ -347,9 +339,9 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
                     i.putExtra("woundId", woundId);
                     i.putExtra("token", token);
                     i.putExtra("primaryColor", primaryColor);
-
                     // Start CameraActivity with startActivityForResult
-                    startActivityForResult(i, REQUEST_IMAGE);
+                    woundSummeryLauncher.launch(i);
+                    getActivity().finish();
                 } catch (Exception e) {
                     e.printStackTrace();
                     Log.e(TAG, "Error processing response", e);

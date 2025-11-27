@@ -1,14 +1,15 @@
 pluginManagement {
     repositories {
-        google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
-            }
-        }
+        google()
         mavenCentral()
         gradlePluginPortal()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.namespace == "com.kezong.fat-aar") {
+                useModule("com.github.kezong:fat-aar:1.3.8")
+            }
+        }
     }
 }
 dependencyResolutionManagement {

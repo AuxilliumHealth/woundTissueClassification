@@ -1,7 +1,6 @@
 package com.auxilliumhealth.woundtissueclassification.Activities;
 
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -16,9 +15,8 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
-import android.media.ExifInterface;
+import androidx.exifinterface.media.ExifInterface;
 import android.media.MediaActionSound;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,16 +27,17 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.SeekBar;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.camera2.interop.Camera2Interop;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
-import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.FocusMeteringAction;
@@ -100,17 +99,11 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private MaterialTextView permissionTextView;
     private MaterialButton permissionButton;
     private FocusCircle focusIndicator;
-    private SeekBar brightnessSlider;
 
     private ProcessCameraProvider cameraProvider;
     private Camera camera;
     private ImageCapture imageCapture;
     private int currentFlashMode = ImageCapture.FLASH_MODE_ON;
-    private int currentExposureIndex = 0;
-    private int minExposure = 0;
-    private int maxExposure = 0;
-    private float exposureStep = 1.0f;
-    private ProgressDialog progressDialog;
 
     private Repository repository;
     private MediaActionSound mediaActionSound;
@@ -121,13 +114,29 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private boolean isFlat = false;
     private Float focalLength;
     private String whereFrom, woundId, sessionId, userId, coinType, token, primaryColor, woundLocation;
-    private boolean appResumed = false;
     private boolean woundScoreRequired = true;
     private boolean hasPermission = false;
     private boolean hasRequestedPermission = false;
     private CameraViewModel viewModel;
     private boolean isFocusDistanceSupported = true;
+    private AlertDialog uploadProgressDialog;
+    private ProgressBar uploadProgressBar;
+    private MaterialTextView uploadStatusText;
 
+    ActivityResultLauncher<Intent> cameraLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == RESULT_OK) {
+                            Intent resultIntent = new Intent();
+                            resultIntent.putExtra("woundId", woundId);
+                            resultIntent.putExtra("sessionId", sessionId);
+                            resultIntent.putExtra("userId", userId);
+                            setResult(RESULT_OK, resultIntent);
+                            finish();
+                        }
+                    }
+            );
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -190,9 +199,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (previewView != null) {
             previewView.setScaleType(PreviewView.ScaleType.FIT_CENTER);
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
-        }
+        getWindow().setStatusBarColor(Color.parseColor(primaryColor));
         setupClickListeners();
         configureUIForFlow();
     }
@@ -254,7 +261,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
         if ("calibrate".equals(whereFrom)) {
             gyroscopeChecker = new GyroscopeChecker(this, this);
-            if (gyroscopeChecker != null && gyroscopeChecker.isGyroscopeAvailable()) {
+            if (gyroscopeChecker.isGyroscopeAvailable()) {
                 gyroscopeChecker.startListening();
             } else {
                 Log.d(TAG, "Gyroscope not available");
@@ -304,30 +311,12 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                     i.putExtra("whereFrom", "calibrate");
                     i.putExtra("userId", userId);
                     i.putExtra("token", token);
+                    i.putExtra("woundId", woundId);
                     i.putExtra("woundLocation", woundLocation);
                     i.putExtra("woundScoreRequired", woundScoreRequired);
                     i.putExtra("primaryColor", primaryColor);
                     startActivity(i);
-                    finish();                }
-            });
-        }
-        if (brightnessSlider != null) {
-            brightnessSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                @Override
-                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    if (fromUser) {
-                        adjustExposure(progress - minExposure);
-                    }
-                }
-
-                @Override
-                public void onStartTrackingTouch(SeekBar seekBar) {
-                    // Optional: Show feedback when user starts adjusting
-                }
-
-                @Override
-                public void onStopTrackingTouch(SeekBar seekBar) {
-                    showToast("Brightness set to: " + (seekBar.getProgress() - minExposure));
+                    finish();
                 }
             });
         }
@@ -350,7 +339,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             showToast("Hold device parallel while capturing");
         } else {
             captureImage();
-            updateFocusUI(true, focalLength != null ? focalLength : 0.0f);
+            updateFocusUI(true);
         }
     }
 
@@ -365,15 +354,17 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             progressContainer.setVisibility(View.VISIBLE);
             helpButton.setVisibility(View.VISIBLE);
             if (!isFocusDistanceSupported && warningText != null) {
-                warningText.setText("Your device does not support focus distance detection. Please capture images at different distances (e.g., 10 cm, 20 cm, 30 cm).");
+                String warningMessage = "Your device does not support focus distance detection. Please capture images at different distances.";
+                warningText.setText(warningMessage);
                 warningText.setVisibility(View.VISIBLE);
+                Log.w(TAG, warningMessage);
             }
         } else {
             progressContainer.setVisibility(View.GONE);
             helpButton.setVisibility(View.GONE);
             String min = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MIN_FOCUS_DISTANCE);
             String max = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MAX_FOCUS_DISTANCE);
-            boolean hasFocusData = min != null && max != null && !min.isEmpty() && !max.isEmpty();
+            boolean hasFocusData = isNotEmpty(min) && isNotEmpty(max);
             imageCaptureText.setVisibility(hasFocusData ? View.VISIBLE : View.GONE);
             captureImg.setVisibility(hasFocusData ? View.VISIBLE : View.GONE);
         }
@@ -406,7 +397,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                 cameraProvider = cameraProviderFuture.get();
                 if (cameraProvider == null || isDestroyed()) return;
 
-                Preview.Builder previewBuilder = new Preview.Builder().setTargetAspectRatio(AspectRatio.RATIO_4_3);  // This is still 4:3
+                Preview.Builder previewBuilder = new Preview.Builder();
                 // The orientation will be handled by the camera configuration
                 new Camera2Interop.Extender<>(previewBuilder).setSessionCaptureCallback(new CameraCaptureSession.CaptureCallback() {
                     @Override
@@ -452,40 +443,15 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
             Range<Integer> exposureRange = characteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
             if (exposureRange != null) {
-                minExposure = exposureRange.getLower();
-                maxExposure = exposureRange.getUpper();
-                exposureStep = characteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue();
-                Log.d(TAG, "Exposure range: [" + minExposure + ", " + maxExposure + "], step: " + exposureStep);
-                if (brightnessSlider != null) {
-                    brightnessSlider.setMax(maxExposure - minExposure);
-                    brightnessSlider.setProgress(-minExposure);
-                    currentExposureIndex = 0;
-                }
-            } else {
-                if (brightnessSlider != null) {
-                    brightnessSlider.setEnabled(false);
-                }
+                int minExposure = exposureRange.getLower();
+                int maxExposure = exposureRange.getUpper();
+                Log.d(TAG, "Exposure range: [" + minExposure + ", " + maxExposure + "]");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error initializing exposure control", e);
-            if (brightnessSlider != null) {
-                brightnessSlider.setEnabled(false);
-            }
         }
     }
 
-    private void adjustExposure(int exposureIndex) {
-        if (camera == null || isDestroyed()) return;
-
-        if (exposureIndex < minExposure || exposureIndex > maxExposure) {
-            showToast("Exposure limit reached");
-            return;
-        }
-
-        currentExposureIndex = exposureIndex;
-        camera.getCameraControl().setExposureCompensationIndex(currentExposureIndex);
-        Log.d(TAG, "Exposure set to index: " + currentExposureIndex);
-    }
 
     private void handleCaptureResult(TotalCaptureResult result) {
         if (result == null) return;
@@ -505,7 +471,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (!focusDistance.equals(focalLength)) {
             focalLength = focusDistance;
             boolean shouldMoveAway = isFocusDistanceSimilar(focusDistance);
-            updateFocusUI(shouldMoveAway, focusDistance);
+            updateFocusUI(shouldMoveAway);
         }
     }
 
@@ -525,7 +491,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         String min = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MIN_FOCUS_DISTANCE);
         String max = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MAX_FOCUS_DISTANCE);
 
-        if (min == null || max == null || min.isEmpty() || max.isEmpty()) {
+        if (!isNotEmpty(min) || !isNotEmpty(max)) {
             return false;
         }
 
@@ -711,7 +677,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true);
     }
 
-    private void updateFocusUI(boolean shouldMoveAway, float lensFocusDistance) {
+    private void updateFocusUI(boolean shouldMoveAway) {
         if (isDestroyed() || imageCaptureText == null || captureImg == null || warningText == null || captureButton == null) {
             return;
         }
@@ -814,10 +780,13 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
     private File createImageFile() {
         try {
-            File storageDir = getCacheDir();
-            if (storageDir == null) return null;
-
-            return File.createTempFile("captured_image_" + System.currentTimeMillis(), ".jpg", storageDir);
+            File cacheDir = new File(getCacheDir(), "calibration");
+            if (!cacheDir.exists()) {
+                if (!cacheDir.mkdirs()) {
+                    Log.w(TAG, "Failed to create cache directory");
+                }
+            }
+            return File.createTempFile("captured_image_" + System.currentTimeMillis(), ".jpg", cacheDir);
         } catch (Exception e) {
             Log.e(TAG, "Failed to create image file", e);
             return null;
@@ -828,7 +797,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (isDestroyed() || isFinishing() || photoFile == null) return;
 
         try {
-            uploadImage(photoFile, woundId, sessionId, lensFocusDistances.isEmpty() ? "0" : String.valueOf(lensFocusDistances.get(0)));
+            uploadImage(photoFile, woundId, sessionId);
         } catch (Exception e) {
             Log.e(TAG, "Navigation failed", e);
             showToast("Error saving image");
@@ -871,54 +840,43 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         }
     }
 
-    private void uploadImage(File file, String woundId, String sessionId, String lensFocusDistance) {
+    private void uploadImage(File file, String woundId, String sessionId) {
         if (isDestroyed()) return;
 
-        // Create and show progress dialog
-        runOnUiThread(() -> {
-            progressDialog = new ProgressDialog(this);
-            progressDialog.setMessage("Uploading image...");
-            progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-            progressDialog.setProgress(0);
-            progressDialog.setMax(100);
-            progressDialog.setCancelable(false);
-            progressDialog.show();
-        });
+        // Show upload progress dialog
+        showUploadProgressDialog();
 
         // Set up the repository callbacks
         repository.setGetCommonAPIDetails(new Repository.GetCommonAPIDataSuccessCallBack() {
             @Override
             public void getCommonAPIDataSuccess(ResponseBody apiArrayResponse) {
-                runOnUiThread(() -> {
-                    if (progressDialog != null && progressDialog.isShowing()) {
-                        progressDialog.dismiss();
-                    }
-                    handleUploadSuccess(apiArrayResponse, lensFocusDistance);
-                });
+                closeUploadProgressDialog();
+                runOnUiThread(() -> handleUploadSuccess(apiArrayResponse));
             }
 
             @Override
             public void getCommonAPIDataFailure(String message) {
-                runOnUiThread(() -> {
-                    if (progressDialog != null && progressDialog.isShowing()) {
-                        progressDialog.dismiss();
-                    }
-                    handleUploadFailure(message);
-                });
+                closeUploadProgressDialog();
+                runOnUiThread(() -> handleUploadFailure(message));
             }
 
             @Override
             public void onProgressUpdate(int progress) {
-                // This is now called by the Repository through ProgressRequestBody
-                runOnUiThread(() -> {
-                    if (progressDialog != null && progressDialog.isShowing()) {
-                        progressDialog.setProgress(progress);
-                        // Optional: Update message when complete
-                        if (progress >= 100) {
-                            progressDialog.setMessage("Finalizing upload...");
+                // Update progress bar with smooth animation
+                if (uploadProgressBar != null && !isDestroyed()) {
+                    runOnUiThread(() -> {
+                        uploadProgressBar.setProgress(progress, true);
+                        if (uploadStatusText != null) {
+                            uploadStatusText.setText(String.format(getString(R.string.uploading_progress_format), progress));
                         }
-                    }
-                });
+                        if (progress >= 100) {
+                            if (uploadStatusText != null) {
+                                uploadStatusText.setText(R.string.uploading_finalizing);
+                            }
+                        }
+                    });
+                }
+                Log.d(TAG, "Upload progress: " + progress + "%");
             }
         });
 
@@ -926,10 +884,55 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         repository.uploadImage(file, userId, woundId, sessionId, token, null);
     }
 
-    private void handleUploadSuccess(ResponseBody apiArrayResponse, String lensFocusDistance) {
-        if (progressDialog != null && progressDialog.isShowing()) {
-            progressDialog.dismiss();
-        }
+    private void showUploadProgressDialog() {
+        if (isDestroyed()) return;
+
+        runOnUiThread(() -> {
+            try {
+                // Create dialog view with progress bar
+                View dialogView = getLayoutInflater().inflate(R.layout.upload_progress_dialog, null);
+                uploadProgressBar = dialogView.findViewById(R.id.uploadProgressBar);
+                uploadStatusText = dialogView.findViewById(R.id.uploadStatusText);
+
+                // Set initial values
+                uploadProgressBar.setProgress(0);
+                uploadStatusText.setText(R.string.uploading_zero_percent);
+
+                // Create and show dialog
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setView(dialogView);
+                builder.setCancelable(false);  // Prevent cancellation during upload
+                uploadProgressDialog = builder.create();
+
+                if (uploadProgressDialog.getWindow() != null) {
+                    uploadProgressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.WHITE));
+                }
+
+                uploadProgressDialog.show();
+                Log.d(TAG, "Upload progress dialog shown");
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing upload dialog", e);
+            }
+        });
+    }
+
+    private void closeUploadProgressDialog() {
+        if (isDestroyed()) return;
+
+        runOnUiThread(() -> {
+            try {
+                if (uploadProgressDialog != null && uploadProgressDialog.isShowing()) {
+                    uploadProgressDialog.dismiss();
+                    uploadProgressDialog = null;
+                    Log.d(TAG, "Upload progress dialog dismissed");
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error closing upload dialog", e);
+            }
+        });
+    }
+
+    private void handleUploadSuccess(ResponseBody apiArrayResponse) {
         if (isDestroyed() || isFinishing() || apiArrayResponse == null) return;
 
         runOnUiThread(() -> {
@@ -939,7 +942,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
                 Intent intent = new Intent(CameraActivity.this, SymptomQuestionActivity.class);
                 intent.putExtra("imageUrl", result.getImageUrl());
-                intent.putExtra("lensFocusDistance", lensFocusDistance);
+                intent.putExtra("lensFocusDistance", lensFocusDistances.isEmpty() ? "0" : String.valueOf(lensFocusDistances.get(0)) );
                 intent.putExtra("woundId", woundId);
                 intent.putExtra("primaryColor", primaryColor);
                 intent.putExtra("sessionId", sessionId);
@@ -948,7 +951,8 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                 intent.putExtra("coinType", coinType);
                 intent.putExtra("woundScoreRequired", woundScoreRequired);
                 intent.putExtra("whereFrom", whereFrom);
-                startActivityForResult(intent, REQUEST_CODE_SYMPTOM_ACTIVITY);
+                cameraLauncher.launch(intent);
+                finish();
             } catch (Exception e) {
                 Log.e(TAG, "Upload processing failed", e);
                 showToast("Error processing upload");
@@ -980,12 +984,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     }
 
     private void handleUploadFailure(String message) {
-        runOnUiThread(() -> {
-            if (progressDialog != null && progressDialog.isShowing()) {
-                progressDialog.dismiss();
-            }
-            showToast(message);
-        });
+        runOnUiThread(() -> showToast(message));
         if (!isDestroyed()) {
             showToast("Upload failed");
         }
@@ -1087,7 +1086,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     @Override
     protected void onResume() {
         super.onResume();
-        appResumed = true;
         hasPermission = CameraPermissionHelper.hasCameraPermission(this);
         updateViewVisibility();
 
@@ -1114,10 +1112,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
     @Override
     protected void onDestroy() {
-        if (progressDialog != null && progressDialog.isShowing()) {
-            progressDialog.dismiss();
-            progressDialog = null;
-        }
         super.onDestroy();
         isCapturing.set(false);
 
@@ -1140,5 +1134,9 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (gyroscopeChecker != null) {
             gyroscopeChecker.stopListening();
         }
+    }
+
+    private boolean isNotEmpty(String str) {
+        return str != null && !str.isEmpty();
     }
 }

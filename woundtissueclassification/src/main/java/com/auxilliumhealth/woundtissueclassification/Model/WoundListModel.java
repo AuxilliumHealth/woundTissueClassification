@@ -11,6 +11,9 @@ public class WoundListModel {
     @SerializedName("userId")
     @Expose
     private String userId;
+    @SerializedName("woundId")
+    @Expose
+    private String woundId;
     @SerializedName("data")
     @Expose
     private List<Datum> data;
@@ -29,6 +32,14 @@ public class WoundListModel {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getWoundId() {
+        return woundId;
+    }
+
+    public void setWoundId(String woundId) {
+        this.woundId = woundId;
     }
 
     public class Datum {

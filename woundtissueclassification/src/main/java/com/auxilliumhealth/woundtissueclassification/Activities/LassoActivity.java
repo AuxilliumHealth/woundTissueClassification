@@ -1,20 +1,18 @@
 package com.auxilliumhealth.woundtissueclassification.Activities;
 
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
-
-import com.auxilliumhealth.woundtissueclassification.Utils.CoinDetector;
-import com.auxilliumhealth.woundtissueclassification.Utils.LassoView;
-import com.auxilliumhealth.woundtissueclassification.Model.ResultDataModel;
-import com.auxilliumhealth.woundtissueclassification.R;
-
-
-import android.content.Intent;
-import android.graphics.*;
-import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -22,6 +20,13 @@ import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import com.auxilliumhealth.woundtissueclassification.Model.ResultDataModel;
+import com.auxilliumhealth.woundtissueclassification.R;
+import com.auxilliumhealth.woundtissueclassification.Utils.CoinDetector;
+import com.auxilliumhealth.woundtissueclassification.Utils.LassoView;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -30,7 +35,9 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class LassoActivity extends AppCompatActivity {
 
@@ -107,9 +114,12 @@ public class LassoActivity extends AppCompatActivity {
             Utils.bitmapToMat(finalImage, overlayMat);
             Utils.bitmapToMat(croppedImage, croppedMat);
 
-            File picturesDir = getCacheDir();
-            File overlayFile = new File(picturesDir, "overlay_" + originalFile.getName());
-            File croppedFile = new File(picturesDir, "cropped_" + originalFile.getName());
+            File cacheDir = new File(getCacheDir(), "calibration");
+            if (!cacheDir.exists()) {
+                cacheDir.mkdirs();
+            }
+            File overlayFile = new File(cacheDir, "overlay_" + originalFile.getName());
+            File croppedFile = new File(cacheDir, "cropped_" + originalFile.getName());
 
             saveMatToFile(overlayMat, overlayFile);
             saveMatToFile(croppedMat, croppedFile);
@@ -121,10 +131,10 @@ public class LassoActivity extends AppCompatActivity {
                 }
 
                 CoinDetector coinDetector = new CoinDetector();
-                ResultDataModel result = coinDetector.detectCoinsExtractPixelCounts( croppedCoords, imagePath);
+                ResultDataModel result = coinDetector.detectCoinsExtractPixelCounts(LassoActivity.this, croppedCoords, imagePath);
 
                 Intent resultIntent = new Intent();
-                if (result == null || result.getcontourImage() == null|| result.getPixelCount() == 0) {
+                if (result == null || result.getcontourImage() == null || result.getPixelCount() == 0) {
                     resultIntent.putExtra("overlayPath", imagePath);
                     resultIntent.putExtra("pixelCount", 0);
                     Log.w("LassoActivity", "Result or contour image is null.");
@@ -230,24 +240,14 @@ public class LassoActivity extends AppCompatActivity {
         float centerY = bounds.centerY();
         float halfSize = Math.max(bounds.width(), bounds.height()) / 2f;
 
-        Rect cropRect = new Rect(
-                Math.max(0, (int) (centerX - halfSize)),
-                Math.max(0, (int) (centerY - halfSize)),
-                Math.min(original.getWidth(), (int) (centerX + halfSize)),
-                Math.min(original.getHeight(), (int) (centerY + halfSize))
-        );
+        Rect cropRect = new Rect(Math.max(0, (int) (centerX - halfSize)), Math.max(0, (int) (centerY - halfSize)), Math.min(original.getWidth(), (int) (centerX + halfSize)), Math.min(original.getHeight(), (int) (centerY + halfSize)));
 
         if (cropRect.width() <= 0 || cropRect.height() <= 0) {
             Log.e("LassoActivity", "Invalid crop dimensions: " + cropRect);
             return null;
         }
 
-        croppedCoords = new float[]{
-                bounds.left,
-                bounds.top,
-                bounds.right,
-                bounds.bottom
-        };
+        croppedCoords = new float[]{bounds.left, bounds.top, bounds.right, bounds.bottom};
 
         return Bitmap.createBitmap(original, cropRect.left, cropRect.top, cropRect.width(), cropRect.height());
     }
@@ -257,11 +257,7 @@ public class LassoActivity extends AppCompatActivity {
         if (drawable == null) return null;
 
         try {
-            Bitmap bitmap = Bitmap.createBitmap(
-                    drawable.getIntrinsicWidth(),
-                    drawable.getIntrinsicHeight(),
-                    Bitmap.Config.ARGB_8888
-            );
+            Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
             drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
             drawable.draw(canvas);

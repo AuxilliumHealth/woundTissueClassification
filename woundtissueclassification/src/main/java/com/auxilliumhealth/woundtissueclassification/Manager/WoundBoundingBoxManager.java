@@ -33,9 +33,7 @@ public class WoundBoundingBoxManager {
         return woundBoundingBox.getOutputBitmap();
     }
 
-    public void save() {
-        FileUtil.saveBitmapAsImage(getOutputBitmap(), Constants.FILE_NAME+sessionId+"/"+Constants.WOUND_BOUNDING_BOX_OUTPUT_IMAGE_NAME );
-    }
+
     public float[] getWoundCoordinates() {
         return woundBoundingBox.getWoundLocations();
     }

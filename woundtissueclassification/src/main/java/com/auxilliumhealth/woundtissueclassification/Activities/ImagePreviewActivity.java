@@ -11,11 +11,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
 
 import com.auxilliumhealth.woundtissueclassification.Adapters.ImageGroupAdapter;
 import com.auxilliumhealth.woundtissueclassification.LocalDatabase.PreferencesHelper;
@@ -24,7 +22,6 @@ import com.auxilliumhealth.woundtissueclassification.Model.CalibrationModel;
 import com.auxilliumhealth.woundtissueclassification.Model.ResultDataModel;
 import com.auxilliumhealth.woundtissueclassification.R;
 import com.auxilliumhealth.woundtissueclassification.Repository.Repository;
-import com.auxilliumhealth.woundtissueclassification.Utils.CalibrateFit;
 import com.auxilliumhealth.woundtissueclassification.Utils.CoinDetector;
 import com.auxilliumhealth.woundtissueclassification.Utils.RootActivity;
 import com.auxilliumhealth.woundtissueclassification.ViewModel.CustomViewPager;
@@ -36,7 +33,6 @@ import com.google.gson.Gson;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -53,13 +49,13 @@ public class ImagePreviewActivity extends RootActivity {
     String primaryColor;
     MaterialToolbar materialToolbar;
     AppBarLayout appBarLayout;
+    ImageButton btnPrev, btnNextArrow;
     private ImageGroupAdapter adapter;
     private ActivityResultLauncher<Intent> lassoLauncher;
     private Repository repository;
     // UI elements replacing binding
     private CustomViewPager viewPager;
-    private MaterialButton btnNext,  btnLasso;
-    ImageButton btnPrev, btnNextArrow;
+    private MaterialButton btnNext, btnLasso;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,7 +96,6 @@ public class ImagePreviewActivity extends RootActivity {
         ArrayList<String> filePaths = getIntent().getStringArrayListExtra("filePaths");
 
         if (filePaths == null || filePaths.isEmpty()) {
-//            Toast.makeText(this, "No file paths received.", Toast.LENGTH_SHORT).show();
             Log.e("ImagePreview", "No file paths received.");
             finish();
             return;
@@ -144,8 +139,7 @@ public class ImagePreviewActivity extends RootActivity {
                     });
                 } catch (Exception e) {
                     Log.e("ImageProcessing", "Error processing images", e);
-                    runOnUiThread(() ->
-                    Log.e("ImageProcessing", "Error processing images: " + e.getMessage()  ) );
+                    runOnUiThread(() -> Log.e("ImageProcessing", "Error processing images: " + e.getMessage()));
                 } finally {
                     runOnUiThread(() -> {
                         if (progressDialog.isShowing()) {
@@ -226,9 +220,12 @@ public class ImagePreviewActivity extends RootActivity {
 
 
     private void uploadCalibrateData(String userId, String coinType, ArrayList<Float> lenseFocusDistances, String pixelCounts) {
-        Log.d("TAG", "uploadCalibrateData: " + userId + ", " + coinType + ", " + lenseFocusDistances + ", " + pixelCounts);
-showLoader();
+        showLoader();
         new Thread(() -> {
+            // delete calibration folder
+            File calibration = new File(getCacheDir(), "calibration");
+            deleteRecursive(calibration);
+            //-----------
             Map<Double, Integer> pixelCountsMap = new HashMap<>();
             for (int i = 0; i < lensFocusDistances.size(); i++) {
                 float distance = lensFocusDistances.get(i);
@@ -245,18 +242,7 @@ showLoader();
 
             // Store result as a String
             String lenceFocusDistancesString = sb.toString();
-            CalibrateFit calibrateFit = new CalibrateFit(Integer.parseInt(coinType), pixelCountsMap, userId);
 
-            try {
-                CalibrateFit.CalibrationResult result = calibrateFit.calibrate();
-
-                Log.d("Calibration", "Area Coeffs: " + Arrays.toString(result.areaCoeffs));
-                Log.d("Calibration", "Pixel Coeffs: " + Arrays.toString(result.pixelPerUnitCoeffs));
-                Log.d("Calibration", "Area Error: " + result.areaError + "%");
-                Log.d("Calibration", "Pixel Error: " + result.pixelError + "%");
-            } catch (Exception e) {
-                Log.e("Calibration", "Failed: " + e.getMessage());
-            }
 
             repository.setGetCommonAPIDetails(new Repository.GetCommonAPIDataSuccessCallBack() {
                 @Override
@@ -313,6 +299,7 @@ showLoader();
                     });
 
                 }
+
                 @Override
                 public void onProgressUpdate(int progress) {
 
@@ -322,7 +309,19 @@ showLoader();
             repository.getCalibrate(userId, coinType, lenceFocusDistancesString, pixelCounts);
         }).start();
     }
-
+    private void deleteRecursive(File fileOrDirectory) {
+        if (fileOrDirectory.exists()) {
+            if (fileOrDirectory.isDirectory()) {
+                File[] children = fileOrDirectory.listFiles();
+                if (children != null) {
+                    for (File child : children) {
+                        deleteRecursive(child);
+                    }
+                }
+            }
+            fileOrDirectory.delete();
+        }
+    }
     private void dialogbox() {
         final Dialog dialog = new Dialog(ImagePreviewActivity.this);
         dialog.setContentView(R.layout.wound_alert_dialogbox);
@@ -358,7 +357,7 @@ showLoader();
         final Dialog dialog = new Dialog(ImagePreviewActivity.this);
         dialog.setContentView(R.layout.wound_alert_dialogbox);
         dialog.show();
-//        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCanceledOnTouchOutside(false);
         dialog.getWindow().setBackgroundDrawable(new ColorDrawable(0));
 
         MaterialButton oldBtn = dialog.findViewById(R.id.old_btn);
@@ -385,7 +384,7 @@ showLoader();
 
         newBtn.setOnClickListener(v -> {
             Intent i = new Intent(ImagePreviewActivity.this, CameraActivity.class);
-            i.putExtra("whereFrom", "c");
+            i.putExtra("whereFrom", "calibrate");
             i.putExtra("coinType", coinType);
             i.putExtra("userId", userId);
             i.putExtra("token", token);

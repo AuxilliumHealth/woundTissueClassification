@@ -20,6 +20,13 @@
     <string name="ideal_conditions_message">Wait for the camera button to turn green for ideal imaging conditions.</string>
     <string name="move_instruction">Move to different distance</string>
 
+    <!-- Upload Progress Dialog Strings -->
+    <string name="uploading_image">Uploading Image</string>
+    <string name="uploading_zero_percent">Uploading... 0%</string>
+    <string name="uploading_progress_format">Uploading... %d%%</string>
+    <string name="uploading_finalizing">Finalizing...</string>
+    <string name="uploading_info_text">Please wait while your image is being uploaded</string>
+
     <!-- Error Messages -->
     <string name="error_camera_unavailable">Camera is not available. Please try again later.</string>
     <string name="error_storage_permission">Storage permission is required to save images.</string>

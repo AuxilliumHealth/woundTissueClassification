@@ -1,15 +1,14 @@
 package com.auxilliumhealth.imaging;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
-import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-//import com.auxilliumhealth.woundtissueclassification.woundtissueclassification;
 import com.auxilliumhealth.woundtissueclassification.woundtissueclassification;
 import com.google.android.material.button.MaterialButton;
 
@@ -18,10 +17,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     // ✅ Register ActivityResultLauncher for receiving SDK results
-    private final ActivityResultLauncher<Intent> woundTissueLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+    private final ActivityResultLauncher<Intent> woundTissueLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        Log.d(TAG, "onActivityResult: ResultCode = " + result.getResultCode());
 
-            });
+
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,26 +34,29 @@ public class MainActivity extends AppCompatActivity {
         previewButton.setOnClickListener(v -> launchPreviewWithCallback());
 
         //reset calibration
-        woundtissueclassification.resetCalibration(this);
+//        woundtissueclassification.resetCalibration(this);
     }
-private void launchPreviewWithCallback() {
-    woundtissueclassification.launchPreviewWoundList(
-            this,
-            "user_id", // userId
-            "token", // https://console.woundtele.com
-            "#2CA6CC");
-}
-    private void launchWithCallback() {
-            woundtissueclassification.woundtissueclassificationWithLauncher(
-                    woundTissueLauncher,
-                    this,
-                    "user_id", // userId
-                    "token", // https://console.woundtele.com
-                    "#2CA6CC", // primary color
-                    false //riskScore optional
-            );
 
+    private void launchPreviewWithCallback() {
+        woundtissueclassification.launchPreviewWoundList(this, "user_id", // userId (Mandatory)
+                "",//woundId  (Mandatory)
+                "token", // https://console.woundtele.com (Mandatory)
+                "#2CA6CC"); //primaryColor (Mandatory)
     }
+
+    private void launchWithCallback() {
+        woundtissueclassification.woundtissueclassificationWithLauncher(woundTissueLauncher, this,
+                "user_id", // userId
+                "wound_id", // woundId (optional)
+                "token", // https://console.woundtele.com
+                "#2CA6CC", // primary color
+                true, //riskScore isRequired
+                true, //body selection isRequired
+                true //calibration isRequired
+        );
+    }
+
+
 
 
 }

@@ -52,6 +52,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-//    implementation(project(":woundtissueclassification"))
-    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.2")
+    implementation(project(":woundtissueclassification"))
+//    implementation(files("libs/woundtissueclassification-release.aar"))
+
+//    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.2")
 }

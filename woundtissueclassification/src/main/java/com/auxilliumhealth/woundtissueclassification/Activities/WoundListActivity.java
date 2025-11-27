@@ -30,7 +30,7 @@ public class WoundListActivity extends RootActivity {
     ActivityWoundListBinding binding;
     String TAG = "WoundListActivity";
     Repository repository;
-    String primaryColor, userId, token;
+    String primaryColor, userId, token,woundId;
     private WoundListAdapter woundImageAdapter;
 
     @Override
@@ -42,6 +42,7 @@ public class WoundListActivity extends RootActivity {
 
         userId = getIntent().getStringExtra("userId");
         token = getIntent().getStringExtra("token");
+        woundId = getIntent().getStringExtra("woundId");
         primaryColor = getIntent().getStringExtra("primaryColor");
         binding.appBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
         binding.materialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
@@ -50,7 +51,7 @@ public class WoundListActivity extends RootActivity {
         }
 
         setupRecyclerView();
-        getWoundList(userId, token);
+        getWoundList(userId, token,woundId);
     }
 
     private void setupRecyclerView() {
@@ -81,11 +82,12 @@ public class WoundListActivity extends RootActivity {
     }
 
 
-    private void getWoundList(String userId, String token) {
+    private void getWoundList(String userId, String token,String woundId) {
         showLoadingState();
 
         WoundListModel request = new WoundListModel();
         request.setUserId(userId);
+        request.setWoundId(woundId);
 
         repository.getWoundList(request, token, new Repository.GetCommonAPIDataSuccessCallBack() {
             @Override

@@ -32,16 +32,13 @@ public class LatestWoundListActivity extends RootActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityLatestWoundListBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
         userId = getIntent().getStringExtra("userId");
         token = getIntent().getStringExtra("token");
         primaryColor = getIntent().getStringExtra("primaryColor");
         woundId = getIntent().getStringExtra("woundId");
         boolean woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
-
         sessionId = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault()).format(new Date());
-
-        // Initialize ViewModel
+        // InitializeViewModel
         viewModel = new ViewModelProvider(this).get(LatestWoundListViewModel.class);
         binding.newWoundBtn.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         binding.newWoundBtn.setTextColor(Color.parseColor(primaryColor));
@@ -96,7 +93,7 @@ public class LatestWoundListActivity extends RootActivity {
                 i.putExtra("token", token);
                 i.putExtra("primaryColor", primaryColor);
                 i.putExtra("woundScoreRequired", woundScoreRequired);
-                i.putExtra("woundId", "1");
+                i.putExtra("woundId", woundId);
                 startActivity(i);
                 finish();
             }

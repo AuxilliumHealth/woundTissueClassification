@@ -116,7 +116,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             Log.e(TAG, "Error in onCreate", e);
-            Toast.makeText(this, "App initialization failed", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "App initialization failed", Toast.LENGTH_SHORT).show();
             finish();
         }
     }
@@ -213,7 +213,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
 
         viewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+//                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -222,22 +222,33 @@ public class SymptomQuestionActivity extends AppCompatActivity {
         if (token != null) {
             viewModel.loadQuestions(token);
         } else {
-            Toast.makeText(this, "Authentication error", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "Authentication error", Toast.LENGTH_SHORT).show();
             finish();
         }
     }
 
     private void startBackgroundAIProcessing() {
-        if (imageUrl != null && woundId != null && lensFocusDistance != null && token != null) {
+        if (imageUrl != null && woundId != null && token != null) {
             if (!isProcessingAI.get()) {
                 Log.d(TAG, "Starting background AI processing...");
                 String areaCoff = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_AREA_COEFFS);
                 String pixelPerUnit = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_PIXEL_PER_UNIT);
 
-                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, Double.parseDouble(lensFocusDistance), token, areaCoff, pixelPerUnit);
+                // Safely parse lensFocusDistance with fallback value
+                double focusDistance = 0.0;
+                if (lensFocusDistance != null && !lensFocusDistance.isEmpty()) {
+                    try {
+                        focusDistance = Double.parseDouble(lensFocusDistance);
+                    } catch (NumberFormatException e) {
+                        Log.w(TAG, "Invalid lensFocusDistance: " + lensFocusDistance + ", using default: 0.0", e);
+                        focusDistance = 0.0;
+                    }
+                }
+
+                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit);
             }
         } else {
-            Log.w(TAG, "Missing required data for AI processing");
+            Log.w(TAG, "Missing required data for AI processing - imageUrl: " + (imageUrl != null) + ", woundId: " + (woundId != null) + ", token: " + (token != null));
         }
     }
 
@@ -254,12 +265,12 @@ public class SymptomQuestionActivity extends AppCompatActivity {
 
         binding.btnNext.setOnClickListener(v -> {
             if (questionList == null || currentIndex >= questionList.size()) {
-                Toast.makeText(this, "Question data not available", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(this, "Question data not available", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             if (!selectedAnswers.containsKey(questionList.get(currentIndex).questionId)) {
-                Toast.makeText(this, "Please select an option to continue", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(this, "Please select an option to continue", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -274,7 +285,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             }
 
             if (selectedOption != null && selectedOption.subOption != null && !selectedSubAnswers.containsKey(currentQuestion.questionId)) {
-                Toast.makeText(this, "Please select a sub-option to continue", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(this, "Please select a sub-option to continue", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -399,7 +410,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             Log.e(TAG, "Error showing question", e);
-            Toast.makeText(this, "Error loading question", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "Error loading question", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -435,7 +446,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
                 public boolean onLoadFailed(GlideException e, Object model, Target<GifDrawable> target, boolean isFirstResource) {
                     runOnUiThread(() -> {
                         binding.ivQuestion.setVisibility(View.GONE);
-                        Toast.makeText(SymptomQuestionActivity.this, "Image failed to load", Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(SymptomQuestionActivity.this, "Image failed to load", Toast.LENGTH_SHORT).show();
                     });
                     return false;
                 }
@@ -508,7 +519,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
 
     private void navigateToNextQuestion() {
         if (questionList == null) {
-            Toast.makeText(this, "Questions not loaded", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "Questions not loaded", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -810,7 +821,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             Log.e(TAG, "Error showing final results", e);
-            Toast.makeText(this, "Error displaying results", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "Error displaying results", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -832,7 +843,13 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             resultIntent.putExtra("sessionId", sessionId);
             resultIntent.putExtra("userId", userId);
             resultIntent.putExtra("woundId", woundId);
-            resultIntent.putExtra("token", token);
+            resultIntent.putExtra("status", "success");
+            resultIntent.putExtra("imageUrl", imageUrl);
+            resultIntent.putExtra("coinType", coinType);
+            resultIntent.putExtra("whereFrom", whereFrom);
+
+            // Note: WoundAnalysis object is not serializable, so we pass only the UI data
+            // If you need the full analysis, retrieve it from server using sessionId
 
             // Check if we're using direct callback
             boolean useDirectCallback = getIntent().getBooleanExtra("useDirectCallback", false);
@@ -851,7 +868,12 @@ public class SymptomQuestionActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Error returning success result", e);
             isResultSet = true; // Mark as result set even on error
-            setResult(RESULT_CANCELED);
+            Intent errorIntent = new Intent();
+            errorIntent.putExtra("status", "error");
+            errorIntent.putExtra("sessionId", sessionId);
+            errorIntent.putExtra("userId", userId);
+            errorIntent.putExtra("woundId", woundId);
+            setResult(RESULT_CANCELED, errorIntent);
             finish();
         }
     }
@@ -1020,7 +1042,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             Glide.with(this).load(imageUrl).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.originalImage);
 
             // Show error message
-            Toast.makeText(this, "Unable to load AI analysis results", Toast.LENGTH_LONG).show();
+//            Toast.makeText(this, "Unable to load AI analysis results", Toast.LENGTH_LONG).show();
 
             // You can also show a specific error state in the UI
             binding.woundanalyticCard.setVisibility(View.GONE);
@@ -1099,7 +1121,12 @@ public class SymptomQuestionActivity extends AppCompatActivity {
     public void onBackPressed() {
         Log.d(TAG, "Back button pressed - returning canceled result");
         isResultSet = true;
-        setResult(RESULT_CANCELED);
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("sessionId", sessionId);
+        resultIntent.putExtra("userId", userId);
+        resultIntent.putExtra("woundId", woundId);
+        resultIntent.putExtra("status", "cancelled");
+        setResult(RESULT_CANCELED, resultIntent);
         super.onBackPressed();
     }
 
@@ -1107,8 +1134,13 @@ public class SymptomQuestionActivity extends AppCompatActivity {
     protected void onDestroy() {
         // If the activity is being destroyed without setting a result, set canceled
         if (isFinishing() && !isResultSet) {
-            Log.d(TAG, "Activity finishing without result set - defaulting to CANCELED");
-            setResult(RESULT_CANCELED);
+            Log.d(TAG, "Activity finishing without result set - defaulting to CANCELED with data");
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("sessionId", sessionId);
+            resultIntent.putExtra("userId", userId);
+            resultIntent.putExtra("woundId", woundId);
+            resultIntent.putExtra("status", "destroyed");
+            setResult(RESULT_CANCELED, resultIntent);
         }
 
         super.onDestroy();

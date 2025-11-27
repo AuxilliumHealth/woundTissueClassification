@@ -145,16 +145,15 @@ private void resetCalibration() {
     }
 
     private void launchPreview() {
-        com.auxilliumhealth.woundtissueclassification.woundtissueclassification
-            .launchPreviewWoundList(
-                this,
-                "user-Identity",
-                "token",
-                "#2196F3",
-                true, // riskScoreRequired
-                true, // bodySelectionRequired
-                true // calibrationRequired
-            );
+      woundtissueclassification.woundtissueclassificationWithLauncher(woundTissueLauncher, this,
+              "user_id", // userId
+              "wound_id", // woundId (optional)
+              "token", // https://console.woundtele.com
+              "#2CA6CC", // primary color
+              true, //riskScore isRequired
+              true, //body selection isRequired
+              true //calibration isRequired
+      );
     }
 }
 ```
@@ -194,6 +193,7 @@ class MainActivity : AppCompatActivity() {
             .launchPreviewWoundList(
                 this,
                 "user-Identity",// your userId
+                "wound_id", // woundId (optional)
                 "token", // Bearer token from https://console.woundtele.com
                 "#2196F3", // primary color (hex or theme key)
                 true, // riskScoreRequired

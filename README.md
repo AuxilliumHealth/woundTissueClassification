@@ -88,7 +88,32 @@ dependencies {
 The SDK provides two main entry points:
 
 * **Wound Capture & Classification Flow**
+  - `woundtissueclassificationWithLauncher()`: Launches the full wound assessment flow
+    - `riskScoreRequired`: Boolean - If true, requires the user to complete a risk assessment
+    - `bodySelectionRequired`: Boolean - If true, requires the user to select a body part
+    - `calibrationRequired`: Boolean - If true, forces the calibration screen to appear (bypasses any existing calibration data)
+
 * **Wound List Preview Flow**
+  - `launchPreviewWoundList()`: Shows a list of previously captured wounds
+
+### Flow Control Parameters
+
+1. **riskScoreRequired** (Boolean)
+   - `true`: User must complete a risk assessment before proceeding
+   - `false`: Skips the risk assessment step
+
+2. **bodySelectionRequired** (Boolean)
+   - `true`: User must select a body part before capturing the wound
+   - `false`: Skips the body part selection step
+
+3. **calibrationRequired** (Boolean)
+   - `true`: Always shows the calibration screen, even if calibration data exists
+   - `false`: Only shows calibration if no calibration data exists
+
+### Best Practices
+- For first-time users, set `calibrationRequired = true` to ensure proper setup
+- For returning users, you can set `calibrationRequired = false` to skip calibration if they've already completed it
+- Use `riskScoreRequired` and `bodySelectionRequired` based on your clinical workflow requirements
 
 Example (`MainActivity.java` in the sample `app/`):
 
@@ -110,8 +135,12 @@ private void resetCalibration() {
                 woundTissueLauncher,
                 this,
                 "user-Identity",   // your userId
+                "wound_id",        // woundId (optional)
                 "token",           // Bearer token from https://console.woundtele.com
-                "#2196F3"          // primary color (hex or theme key)
+                "#2196F3",         // primary color (hex or theme key)
+                true,               // riskScoreRequired: if true, requires risk assessment
+                true,              // bodySelectionRequired: if true, requires body part selection
+                true               // calibrationRequired: if true, forces calibration screen
             );
     }
 
@@ -122,7 +151,9 @@ private void resetCalibration() {
                 "user-Identity",
                 "token",
                 "#2196F3",
-                false //riskScoreRequired
+                true, // riskScoreRequired
+                true, // bodySelectionRequired
+                true // calibrationRequired
             );
     }
 }
@@ -165,7 +196,9 @@ class MainActivity : AppCompatActivity() {
                 "user-Identity",// your userId
                 "token", // Bearer token from https://console.woundtele.com
                 "#2196F3", // primary color (hex or theme key)
-                false // riskScoreRequired
+                true, // riskScoreRequired
+                true, //body selection isRequired
+                true //calibration isRequired
             )
     }
 }

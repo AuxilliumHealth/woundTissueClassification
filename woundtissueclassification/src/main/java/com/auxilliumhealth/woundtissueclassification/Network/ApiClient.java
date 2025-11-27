@@ -12,7 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
     private static Retrofit retrofit = null;
-    private static final String DEFAULT_BASE_URL = "http://192.168.31.39:8000";
+    private static final String DEFAULT_BASE_URL = "https://api.woundtele.com";
     private static final String CALIBRATION_BASE_URL = "https://calibration.woundtele.com/";
 
     public static synchronized Retrofit getInstance(boolean isCalibration, String token) {

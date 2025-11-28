@@ -135,7 +135,7 @@ private void resetCalibration() {
                 woundTissueLauncher,
                 this,
                 "user-Identity",   // your userId
-                "wound_id",        // woundId (optional)
+                "wound_id",        // woundId (Required)
                 "token",           // Bearer token from https://console.woundtele.com
                 "#2196F3",         // primary color (hex or theme key)
                 true,               // riskScoreRequired: if true, requires risk assessment

@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private void launchPreviewWithCallback() {
         woundtissueclassification.launchPreviewWoundList(this, "user_id", // userId (Mandatory)
                 "wound_id",//woundId  (Mandatory)
-                "a89cb7571cb312625d34a18cdf23a88a154d1c043ffc3cf755631f6d81f03648", // https://console.woundtele.com (Mandatory)
+                "token", // https://console.woundtele.com (Mandatory)
                 "#2CA6CC"); //primaryColor (Mandatory)
     }
 
@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         woundtissueclassification.woundtissueclassificationWithLauncher(woundTissueLauncher, this,
                 "user_id", // userId
                 "wound_id", // woundId (optional)
-                "a89cb7571cb312625d34a18cdf23a88a154d1c043ffc3cf755631f6d81f03648", // https://console.woundtele.com
+                "token", // https://console.woundtele.com
                 "#2CA6CC", // primary color
                 true, //riskScore isRequired
                 false, //body selection isRequired

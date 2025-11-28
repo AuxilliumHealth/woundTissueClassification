@@ -144,17 +144,15 @@ private void resetCalibration() {
             );
     }
 
-    private void launchPreview() {
-      woundtissueclassification.woundtissueclassificationWithLauncher(woundTissueLauncher, this,
-              "user_id", // userId
-              "wound_id", // woundId (optional)
-              "token", // https://console.woundtele.com
-              "#2CA6CC", // primary color
-              true, //riskScore isRequired
-              true, //body selection isRequired
-              true //calibration isRequired
-      );
-    }
+  
+        private void launchPreview() {
+            woundtissueclassification.launchPreviewWoundList(this, 
+                    "user_id", // userId (Mandatory)
+                    "wound_id",//woundId  (optional)
+                    "token", // https://console.woundtele.com (Mandatory)
+                    "#2CA6CC"); //primaryColor (Mandatory)
+        }
+    
 }
 ```
 
@@ -183,8 +181,12 @@ class MainActivity : AppCompatActivity() {
                 woundTissueLauncher,
                 this,
                 "user-Identity",   // your userId
+                "wound_id",        // woundId (Required)
                 "token",           // Bearer token from https://console.woundtele.com
-                "#2196F3"          // primary color (hex or theme key)
+                "#2196F3",          // primary color (hex or theme key)
+                true,               // riskScoreRequired: if true, requires risk assessment
+                true,              // bodySelectionRequired: if true, requires body part selection
+                true               // calibrationRequired: if true, forces calibration screen
             )
     }
 
@@ -195,10 +197,8 @@ class MainActivity : AppCompatActivity() {
                 "user-Identity",// your userId
                 "wound_id", // woundId (optional)
                 "token", // Bearer token from https://console.woundtele.com
-                "#2196F3", // primary color (hex or theme key)
-                true, // riskScoreRequired
-                true, //body selection isRequired
-                true //calibration isRequired
+                "#2196F3" // primary color (hex or theme key)
+             
             )
     }
 }

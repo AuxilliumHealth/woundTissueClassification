@@ -115,6 +115,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private Float focalLength;
     private String whereFrom, woundId, sessionId, userId, coinType, token, primaryColor, woundLocation;
     private boolean woundScoreRequired = true;
+    private boolean woundLocationRequired = true;
     private boolean hasPermission = false;
     private boolean hasRequestedPermission = false;
     private CameraViewModel viewModel;
@@ -171,6 +172,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         coinType = getIntent().getStringExtra("coinType");
         sessionId = getIntent().getStringExtra("sessionId");
         woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+        woundLocationRequired = getIntent().getBooleanExtra("woundLocationRequired", true);
         userId = getIntent().getStringExtra("userId");
         woundLocation = getIntent().getStringExtra("woundLocation");
         token = getIntent().getStringExtra("token");
@@ -302,6 +304,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                     i.putExtra("whereFrom", "calibrate");
                     i.putExtra("userId", userId);
                     i.putExtra("woundScoreRequired", woundScoreRequired);
+                    i.putExtra("woundLocationRequired", woundLocationRequired);
                     i.putExtra("token", token);
                     i.putExtra("primaryColor", primaryColor);
                     startActivity(i);
@@ -314,6 +317,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                     i.putExtra("woundId", woundId);
                     i.putExtra("woundLocation", woundLocation);
                     i.putExtra("woundScoreRequired", woundScoreRequired);
+                    i.putExtra("woundLocationRequired", woundLocationRequired);
                     i.putExtra("primaryColor", primaryColor);
                     startActivity(i);
                     finish();
@@ -815,6 +819,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             intent.putExtra("userId", userId);
             intent.putExtra("token", token);
             intent.putExtra("woundScoreRequired", woundScoreRequired);
+            intent.putExtra("woundLocationRequired", woundLocationRequired);
             intent.putExtra("primaryColor", primaryColor);
             startActivity(intent);
             finish();

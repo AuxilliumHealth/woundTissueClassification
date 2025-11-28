@@ -56,6 +56,7 @@ public class ImagePreviewActivity extends RootActivity {
     // UI elements replacing binding
     private CustomViewPager viewPager;
     private MaterialButton btnNext, btnLasso;
+    private boolean woundScoreRequired, woundLocationRequired;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +67,8 @@ public class ImagePreviewActivity extends RootActivity {
         userId = getIntent().getStringExtra("userId");
         primaryColor = getIntent().getStringExtra("primaryColor");
         token = getIntent().getStringExtra("token");
+        woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", false);
+        woundLocationRequired = getIntent().getBooleanExtra("woundLocationRequired", false);
 
         // Java
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -347,6 +350,7 @@ public class ImagePreviewActivity extends RootActivity {
             mIntent.putExtra("userId", userId);
             mIntent.putExtra("token", token);
             mIntent.putExtra("primaryColor", primaryColor);
+            mIntent.putExtra("woundLocationRequired", woundLocationRequired);
             startActivity(mIntent);
             finish();
             dialog.dismiss();
@@ -377,6 +381,7 @@ public class ImagePreviewActivity extends RootActivity {
             i.putExtra("userId", userId);
             i.putExtra("token", token);
             i.putExtra("primaryColor", primaryColor);
+            i.putExtra("woundLocationRequired", woundLocationRequired);
             startActivity(i);
             finish();
             dialog.dismiss();

@@ -45,6 +45,7 @@ public class CalibrationActivity extends AppCompatActivity {
         token = getIntent().getStringExtra("token");
         primaryColor = getIntent().getStringExtra("primaryColor");
         boolean woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+        boolean woundLocationRequired = getIntent().getBooleanExtra("woundLocationRequired", true);
 
         binding.appBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
 
@@ -83,6 +84,7 @@ public class CalibrationActivity extends AppCompatActivity {
             i.putExtra("woundId", woundId);
             i.putExtra("primaryColor", primaryColor);
             i.putExtra("woundScoreRequired", woundScoreRequired);
+            i.putExtra("woundLocationRequired", woundLocationRequired);
             calibrationLauncher.launch(i);
             finish();
 

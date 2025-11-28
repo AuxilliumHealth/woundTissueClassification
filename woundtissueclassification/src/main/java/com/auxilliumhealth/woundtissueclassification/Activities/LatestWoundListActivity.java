@@ -37,6 +37,7 @@ public class LatestWoundListActivity extends RootActivity {
         primaryColor = getIntent().getStringExtra("primaryColor");
         woundId = getIntent().getStringExtra("woundId");
         boolean woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+        boolean woundLocationRequired = getIntent().getBooleanExtra("woundLocationRequired", true);
         sessionId = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault()).format(new Date());
         // InitializeViewModel
         viewModel = new ViewModelProvider(this).get(LatestWoundListViewModel.class);
@@ -58,6 +59,7 @@ public class LatestWoundListActivity extends RootActivity {
             i.putExtra("token", token);
             i.putExtra("woundId", woundId);
             i.putExtra("woundScoreRequired", woundScoreRequired);
+            i.putExtra("woundLocationRequired", woundLocationRequired);
             i.putExtra("primaryColor", primaryColor);
             startActivity(i);
             finish();

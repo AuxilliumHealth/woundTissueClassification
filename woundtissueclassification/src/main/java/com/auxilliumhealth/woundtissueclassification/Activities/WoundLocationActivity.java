@@ -131,6 +131,7 @@ public class WoundLocationActivity extends RootActivity {
                     i.putExtra("woundId", woundId);
                     i.putExtra("token", token);
                     i.putExtra("primaryColor", primaryColor);
+                    i.putExtra("woundLocationRequired", woundLocationRequired);
                     // Start CameraActivity with startActivityForResult
                     woundSummeryLauncher.launch(i);
                     finish();

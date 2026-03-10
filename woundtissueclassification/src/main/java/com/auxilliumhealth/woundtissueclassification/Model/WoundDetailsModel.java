@@ -136,6 +136,9 @@ public class AiModelDataModel {
     @SerializedName("WoundArea")
     @Expose
     private Float woundArea;
+    @SerializedName("WoundDepth")
+    @Expose
+    private Float woundDepth;
     @SerializedName("WoundTissueOverlayImagePath")
     @Expose
     private String woundTissueOverlayImagePath;
@@ -161,8 +164,25 @@ public class AiModelDataModel {
     @Expose
     private List<Object> pixelPerUnitCoeffs;
 
+    @SerializedName("WoundMeasurementOverlayImagePath")
+    @Expose
+    private String woundMeasurementOverlayImagePath;
 
+    @SerializedName("ClockwiseMappingVisualizationImagePath")
+    @Expose
+    private String ClockwiseMappingVisualizationImagePath;
 
+    public String getClockwiseMappingVisualizationImagePath() {
+        return ClockwiseMappingVisualizationImagePath;
+    }
+
+    public String getWoundMeasurementOverlayImagePath() {
+        return woundMeasurementOverlayImagePath;
+    }
+
+    public void setWoundMeasurementOverlayImagePath(String woundMeasurementOverlayImagePath) {
+        this.woundMeasurementOverlayImagePath = woundMeasurementOverlayImagePath;
+    }
 
     public Float getErythemaPercent() {
         return erythemaPercent;
@@ -258,6 +278,14 @@ public class AiModelDataModel {
 
     public void setWoundArea(Float woundArea) {
         this.woundArea = woundArea;
+    }
+
+    public Float getWoundDepth() {
+        return woundDepth;
+    }
+
+    public void setWoundDepth(Float woundDepth) {
+        this.woundDepth = woundDepth;
     }
 
     public String getWoundTissueOverlayImagePath() {

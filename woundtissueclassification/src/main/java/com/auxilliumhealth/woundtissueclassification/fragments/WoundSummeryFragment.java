@@ -139,8 +139,17 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
 
     private void setupUI() {
         // Set colors
-        binding.summeryTxt.setTextColor(Color.parseColor(primaryColor));
-        binding.saveBtn.setBackgroundColor(Color.parseColor(primaryColor));
+        int color = Color.BLACK;
+        try {
+            if (primaryColor != null && !primaryColor.isEmpty()) {
+                color = Color.parseColor(primaryColor);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Invalid primaryColor: " + primaryColor);
+            color = Color.parseColor("#007AFF");
+        }
+        binding.summeryTxt.setTextColor(color);
+        binding.saveBtn.setBackgroundColor(color);
 
         // Set body position image and text
         if (frontBackBody != null) {
@@ -192,13 +201,12 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
             // Navigate back
             requireActivity().onBackPressed();
         } else if (view.getId() == R.id.save_btn) {
-            if (validateInputs()) {
-                woundLocation = frontBackBody + "_" + upperLowerbody + "_" + woundPartBody + "_" + partSideBody;
-                String description = binding.describtionEditText.getText().toString().trim();
+            String description = binding.describtionEditText.getText().toString().trim();
+            // Description is now optional
+            woundLocation = frontBackBody + "_" + upperLowerbody + "_" + woundPartBody + "_" + partSideBody;
 
-                showLoader();
-                updateWoundLocation(userId, woundId, description, woundLocation);
-            }
+            showLoader();
+            updateWoundLocation(userId, woundId, description, woundLocation);
         }
     }
 
@@ -341,10 +349,12 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
                     i.putExtra("primaryColor", primaryColor);
                     // Start CameraActivity with startActivityForResult
                     woundSummeryLauncher.launch(i);
-                    getActivity().finish();
+                    requireActivity().finish();
+                    // Do not finish() here, wait for result in woundSummeryLauncher callback
                 } catch (Exception e) {
                     e.printStackTrace();
                     Log.e(TAG, "Error processing response", e);
+                    Toast.makeText(requireContext(), "Unable to start camera. Please try again.", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -353,6 +363,7 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
             hideLoader();
             if (error != null && !error.isEmpty()) {
                 Log.e("WoundLocationUpdate", "Error: " + error);
+                Toast.makeText(requireContext(), "Failed to save wound information. Please try again.", Toast.LENGTH_SHORT).show();
             }
         });
 

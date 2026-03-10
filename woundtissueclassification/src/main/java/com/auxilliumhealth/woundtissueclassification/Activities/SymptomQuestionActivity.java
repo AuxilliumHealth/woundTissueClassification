@@ -35,7 +35,9 @@ import com.auxilliumhealth.woundtissueclassification.Repository.Repository;
 import com.auxilliumhealth.woundtissueclassification.UiComponent.PieChartView;
 import com.auxilliumhealth.woundtissueclassification.UiComponent.PieHelper;
 import com.auxilliumhealth.woundtissueclassification.Utils.LoadingDialog;
+import com.auxilliumhealth.woundtissueclassification.Utils.RootActivity;
 import com.auxilliumhealth.woundtissueclassification.ViewModel.SymptomViewModel;
+
 import com.auxilliumhealth.woundtissueclassification.databinding.ActivitySymptomQuestionBinding;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.DataSource;
@@ -57,19 +59,28 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-public class SymptomQuestionActivity extends AppCompatActivity {
+import com.auxilliumhealth.woundtissueclassification.Network.ApiClient;
+import com.auxilliumhealth.woundtissueclassification.Network.ApiService;
+import com.auxilliumhealth.woundtissueclassification.Model.EditWoundMeasurementsRequest;
+
+public class SymptomQuestionActivity extends RootActivity {
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Map<Integer, Integer> selectedAnswers = new HashMap<>();
     private final Map<Integer, Integer> selectedSubAnswers = new HashMap<>();
     private final AtomicBoolean isProcessingAI = new AtomicBoolean(false);
     private final AtomicBoolean isSubmittingAnswers = new AtomicBoolean(false);
 
-    String imageUrl, lensFocusDistance, woundId, sessionId, coinType, whereFrom, userId, token;
+    String imageUrl, lensFocusDistance, woundId, sessionId, coinType, whereFrom, userId, token, woundLocation, imageRotationDeg, headDirection;
     String TAG = "SymptomQuestionActivity";
     String primaryColor;
     SubmitAnswersRequest submitAnswersRequest;
     WoundAnalysis woundAnalysis;
+    List<Double> currentLassoCoords = null; // Stores lasso coords for head-direction reprocessing
     // Pie chart data variables
     float sloughPercent, escharPercent, granulationPercent, woundTissueNormalPercent, callusPercent, erythemaPercent, macerationPercent, periWoundNormalPercent;
     private List<Question> questionList;
@@ -85,6 +96,14 @@ public class SymptomQuestionActivity extends AppCompatActivity {
     private boolean woundScoreRequired = true;
     // Add this flag to track if result was set
     private boolean isResultSet = false;
+    private static final int LASSO_MARK_REQUEST_CODE = 1002;
+
+    // Edited measurement values from WoundImageEditActivity — survive showFinalResults override
+    private double editedLengthCm  = 0;
+    private double editedWidthCm   = 0;
+    private double editedAreaVal   = 0;
+    private double editedDepthVal  = 0;
+    private String editedImgPath   = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -138,16 +157,27 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             lensFocusDistance = getIntent().getStringExtra("lensFocusDistance");
             woundId = getIntent().getStringExtra("woundId");
             sessionId = getIntent().getStringExtra("sessionId");
+            woundLocation = getIntent().getStringExtra("woundLocation");
             userId = getIntent().getStringExtra("userId");
             token = getIntent().getStringExtra("token");
             coinType = getIntent().getStringExtra("coinType");
             whereFrom = getIntent().getStringExtra("whereFrom");
             woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+            imageRotationDeg = getIntent().getStringExtra("imageRotationDeg");
+            if (imageRotationDeg == null) imageRotationDeg = "0.0";
+
+            headDirection = getIntent().getStringExtra("headDirection");
+            if (headDirection == null) headDirection = "TOP"; // Default fallback
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 getWindow().setStatusBarColor(Color.parseColor(primaryColor));
             }
+
+            binding.materialToolbar.setNavigationOnClickListener(v -> onBackPressed());
+            binding.resultMaterialToolbar.setNavigationOnClickListener(v -> onBackPressed());
+
             Log.d(TAG, "sessionId: " + sessionId + " userId: " + userId + " woundId: " + woundId);
+
             Log.d(TAG, "woundScoreRequired: " + woundScoreRequired);
 
             setupUIWithPrimaryColor();
@@ -175,7 +205,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
                 showFinalResults(woundAnalysis, null);
             }
             // If AI completes, it will automatically show results via the callback
-        }, 30000); // 30 second timeout
+        }, 60000); // 60 second timeout
     }
 
     private void setupUIWithPrimaryColor() {
@@ -245,7 +275,7 @@ public class SymptomQuestionActivity extends AppCompatActivity {
                     }
                 }
 
-                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit);
+                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg);
             }
         } else {
             Log.w(TAG, "Missing required data for AI processing - imageUrl: " + (imageUrl != null) + ", woundId: " + (woundId != null) + ", token: " + (token != null));
@@ -290,6 +320,48 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             }
 
             navigateToNextQuestion();
+        });
+
+        binding.btnLasso.setOnClickListener(v -> {
+            Log.d(TAG, "Manual/Lasso button clicked - launching LassoActivity");
+            if (imageUrl != null) {
+                Intent intent = new Intent(this, LassoActivity.class);
+                intent.putExtra("imagePath", imageUrl);
+                intent.putExtra("whereFrom", "Wound");
+                intent.putExtra("primaryColor", primaryColor);
+                intent.putExtra("token", token);
+                intent.putExtra("userId", userId);
+                intent.putExtra("sessionId", sessionId);
+                intent.putExtra("woundId", woundId);
+                intent.putExtra("lensFocusDistance", lensFocusDistance);
+                intent.putExtra("coinType", coinType);
+                intent.putExtra("woundScoreRequired", woundScoreRequired);
+
+                startActivityForResult(intent, LASSO_MARK_REQUEST_CODE);
+            } else {
+                Toast.makeText(this, "Original image not available", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        binding.btnMarkReprocess.setOnClickListener(v -> {
+            Log.d(TAG, "Mark Reprocess button clicked - launching LassoActivity");
+            if (imageUrl != null) {
+                Intent intent = new Intent(this, LassoActivity.class);
+                intent.putExtra("imagePath", imageUrl);
+                intent.putExtra("whereFrom", "Wound");
+                intent.putExtra("primaryColor", primaryColor);
+                intent.putExtra("token", token);
+                intent.putExtra("userId", userId);
+                intent.putExtra("sessionId", sessionId);
+                intent.putExtra("woundId", woundId);
+                intent.putExtra("lensFocusDistance", lensFocusDistance);
+                intent.putExtra("coinType", coinType);
+                intent.putExtra("woundScoreRequired", woundScoreRequired);
+
+                startActivityForResult(intent, LASSO_MARK_REQUEST_CODE);
+            } else {
+                Toast.makeText(this, "Original image not available", Toast.LENGTH_SHORT).show();
+            }
         });
     }
 
@@ -631,18 +703,18 @@ public class SymptomQuestionActivity extends AppCompatActivity {
         repository.submitAnswers(request, token);
     }
 
-    private void processAIModelImageInBackground(String userId, String sessionId, String imagePath, String woundId, double lensFocalDistance, String token, String areaCoff, String pixelPerUnit) {
+    private void processAIModelImageInBackground(String userId, String sessionId, String imagePath, String woundId, double lensFocalDistance, String token, String areaCoff, String pixelPerUnit, List<Double> lassoCoordinates, String imageRotationDeg) {
         if (isProcessingAI.get()) {
             Log.d(TAG, "AI Model processing already in progress");
             return;
         }
-
+        woundAnalysis=null;
         isProcessingAI.set(true);
         Log.d(TAG, "Starting background AI image processing...");
 
         List<Double> emptyCoeffs = new ArrayList<>();
-        AIModelProcessRequest request = new AIModelProcessRequest(userId, imagePath, sessionId, woundId, lensFocalDistance, convertToDoubleList(pixelPerUnit), convertToDoubleList(areaCoff));
-
+        AIModelProcessRequest request = new AIModelProcessRequest(userId, imagePath, sessionId, woundId, lensFocalDistance, convertToDoubleList(pixelPerUnit), convertToDoubleList(areaCoff), lassoCoordinates, woundLocation, imageRotationDeg,headDirection);
+        Log.d(TAG, "headDirection: "+headDirection);
         repository.processAIModelImage(request, token, new Repository.GetCommonAPIDataSuccessCallBack() {
             @Override
             public void getCommonAPIDataSuccess(ResponseBody responseBody) {
@@ -658,10 +730,14 @@ public class SymptomQuestionActivity extends AppCompatActivity {
 
                         // Handle different flows based on woundScoreRequired
                         if (!woundScoreRequired) {
-                            // Direct AI results flow
+                            // Direct AI results flow — open edit screen first
                             runOnUiThread(() -> {
                                 hideLoadingDialog();
-                                showFinalResults(woundAnalysis, null);
+//                                if (woundAnalysis.getAiModelData() != null) {
+//                                    showWoundImageEditScreen(woundAnalysis.getAiModelData());
+//                                } else {
+                                    showFinalResults(woundAnalysis, null);
+//                                }
                             });
                         } else {
                             // Symptom questions flow - if answers are already submitted, proceed with results
@@ -743,6 +819,38 @@ public class SymptomQuestionActivity extends AppCompatActivity {
         // Don't show Toast for background errors to avoid interrupting user
     }
 
+    /**
+     * Called immediately after showFinalResults() to restore user-edited measurements
+     * displayed in WoundImageEditActivity, which would otherwise be overwritten by displayWoundMeasurements().
+     */
+    private void applyEditedMeasurementsOverride() {
+        try {
+            if (editedLengthCm > 0)
+                binding.woundLengthTxt.setText(String.format("%.2f cm", editedLengthCm));
+            if (editedWidthCm > 0)
+                binding.woundWidthTxt.setText(String.format("%.2f cm", editedWidthCm));
+            if (editedAreaVal > 0)
+                binding.woundAreaTxt.setText(String.format("%.2f cm²", editedAreaVal));
+            if (editedDepthVal > 0)
+                binding.woundDepthTxt.setText(String.format("%.2f mm", editedDepthVal));
+
+            if (editedImgPath != null) {
+                binding.woundMeasurementAxisCard.setVisibility(View.VISIBLE);
+                binding.measurementDisclaimerTxt.setVisibility(View.VISIBLE);
+                Glide.with(this)
+                        .load(new java.io.File(editedImgPath))
+                        .skipMemoryCache(true)
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .placeholder(R.drawable.image_placeholder)
+                        .into(binding.woundMeasurementAxisImg);
+                final String fp = editedImgPath;
+                binding.woundMeasurementAxisImg.setOnClickListener(v -> showFullScreenImage(fp));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "applyEditedMeasurementsOverride error", e);
+        }
+    }
+
     private void showFinalResults(WoundAnalysis result, String woundScore) {
         try {
             // Hide appropriate layouts based on flow
@@ -759,6 +867,8 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             binding.btnFinish.setBackgroundColor(Color.parseColor(primaryColor));
 
             if (result != null && result.getAiModelData() != null) {
+                binding.noWoundDetectedLayout.setVisibility(View.GONE);
+                binding.woundDetectedLayoutLayout.setVisibility(View.VISIBLE);
                 displayAIResults(result);
                 // Create a data class first
                 ArrayList<AnalysisImage> imageList = new ArrayList<>();
@@ -799,8 +909,10 @@ public class SymptomQuestionActivity extends AppCompatActivity {
                     }
 
                     binding.riskLevelValueTextview.setTextColor(textColor);
-                    binding.riskLevelTextview.setTextColor(textColor);
-                    binding.woundScoreCard.setCardBackgroundColor(backgroundColor);
+                    binding.riskStatusIndicator.setBackgroundColor(textColor);
+                    binding.riskLevelValueTextview.setBackgroundTintList(ColorStateList.valueOf(backgroundColor));
+                    binding.woundScoreCard.setCardBackgroundColor(Color.WHITE);
+
                 } else {
                     // Hide wound score card for direct AI flow
                     binding.woundScoreCard.setVisibility(View.GONE);
@@ -847,6 +959,15 @@ public class SymptomQuestionActivity extends AppCompatActivity {
             resultIntent.putExtra("imageUrl", imageUrl);
             resultIntent.putExtra("coinType", coinType);
             resultIntent.putExtra("whereFrom", whereFrom);
+            
+            try {
+                resultIntent.putExtra("woundArea", binding.woundAreaTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+                resultIntent.putExtra("woundWidth", binding.woundWidthTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+                resultIntent.putExtra("woundLength", binding.woundLengthTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+                resultIntent.putExtra("woundDepth", binding.woundDepthTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+            } catch (Exception e) {
+                Log.e(TAG, "Error passing edited measurements", e);
+            }
 
             // Note: WoundAnalysis object is not serializable, so we pass only the UI data
             // If you need the full analysis, retrieve it from server using sessionId
@@ -917,13 +1038,17 @@ public class SymptomQuestionActivity extends AppCompatActivity {
         try {
             // Load original image
             if (aiData.getImageUrl() != null && !aiData.getImageUrl().isEmpty()) {
-                Glide.with(this).load(aiData.getImageUrl()).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.capturedImage);
+                Glide.with(this).load(aiData.getImageUrl()).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.capturedImage);
             }
 
             // Load bounding box/image with wound localization
             if (aiData.getAiModelData().getDisplayImagePath() != null && !aiData.getAiModelData().getDisplayImagePath().isEmpty()) {
-                Glide.with(this).load(aiData.getAiModelData().getDisplayImagePath()).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.boundingImage);
+                Glide.with(this).load(aiData.getAiModelData().getDisplayImagePath()).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.boundingImage);
             }
+
+            binding.capturedImage.setOnClickListener(v -> showFullScreenImage(aiData.getImageUrl()));
+            binding.boundingImage.setOnClickListener(v -> showFullScreenImage(aiData.getAiModelData().getDisplayImagePath()));
+
 
         } catch (Exception e) {
             Log.e(TAG, "Error loading result images", e);
@@ -993,23 +1118,161 @@ public class SymptomQuestionActivity extends AppCompatActivity {
     private void displayWoundMeasurements(AiModelData aiData) {
         try {
             // Check if wound area is detected
-            if (aiData.getWoundArea() > 0) {
+            if (aiData.getWoundArea() != null && aiData.getWoundArea() > 0) {
                 binding.woundAreaLinearLayout.setVisibility(View.VISIBLE);
+
+                String clockwisePath = aiData.getClockwiseMappingVisualizationImagePath();
+                String overlayPath = aiData.getWoundMeasurementOverlayImagePath();
+                String displayPath = null;
+
+                if (clockwisePath != null && !clockwisePath.isEmpty()) {
+                    displayPath = clockwisePath;
+                } else if (overlayPath != null && !overlayPath.isEmpty()) {
+                    displayPath = overlayPath;
+                }
+
+                if (displayPath != null) {
+                    binding.woundMeasurementAxisCard.setVisibility(View.VISIBLE);
+                    binding.measurementDisclaimerTxt.setVisibility(View.VISIBLE);
+                    Glide.with(this).load(displayPath).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.woundMeasurementAxisImg);
+                    
+                    final String finalPath = displayPath;
+                    binding.woundMeasurementAxisImg.setOnClickListener(v -> showFullScreenImage(finalPath));
+                } else {
+                    binding.woundMeasurementAxisCard.setVisibility(View.GONE);
+                    binding.measurementDisclaimerTxt.setVisibility(View.GONE);
+                }
+
                 // Display measurements
-                binding.woundAreaTxt.setTextColor(Color.parseColor(primaryColor));
-                binding.woundWidthTxt.setTextColor(Color.parseColor(primaryColor));
-                binding.woundLengthTxt.setTextColor(Color.parseColor(primaryColor));
                 binding.woundAreaTxt.setText(String.format("%.2f cm²", aiData.getWoundArea()));
-                binding.woundWidthTxt.setText(String.format("%.2f cm", aiData.getWoundWidth()));
-                binding.woundLengthTxt.setText(String.format("%.2f cm", aiData.getWoundLength()));
+                
+                if (aiData.getWoundWidth() == null || aiData.getWoundWidth() <= 0) {
+                    binding.woundWidthTxt.setText("-");
+                } else {
+                    binding.woundWidthTxt.setText(String.format("%.2f cm", aiData.getWoundWidth()));
+                }
+                
+                if (aiData.getWoundLength() == null || aiData.getWoundLength() <= 0) {
+                    binding.woundLengthTxt.setText("-");
+                } else {
+                    binding.woundLengthTxt.setText(String.format("%.2f cm", aiData.getWoundLength()));
+                }
+                
+                if (aiData.getWoundDepth() == null || aiData.getWoundDepth() <= 0) {
+                    binding.woundDepthTxt.setText("-");
+                } else {
+                    binding.woundDepthTxt.setText(String.format("%.2f mm", aiData.getWoundDepth()));
+                }
+
+                binding.measurementsEditBtn.setOnClickListener(v -> showEditDimensionsBottomSheet());
+                binding.btnEditMarkings.setOnClickListener(v -> showWoundImageEditScreen(aiData));
+
             } else {
                 // No wound detected
                 binding.woundAreaLinearLayout.setVisibility(View.GONE);
+                binding.woundMeasurementAxisCard.setVisibility(View.GONE); 
+                binding.measurementDisclaimerTxt.setVisibility(View.GONE);
             }
+
 
         } catch (Exception e) {
             Log.e(TAG, "Error displaying wound measurements", e);
         }
+    }
+
+    private static final int REQ_WOUND_EDIT = WoundImageEditActivity.REQUEST_CODE;
+
+    private void showWoundImageEditScreen(AiModelData aiData) {
+        if (aiData.getCroppedImagePath() != null && aiData.getCropped_Grabcut_mask() != null&& aiData.getWoundArea()!=0 && aiData.getWoundLength()!=0) {
+            String areaCoeffs   = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_AREA_COEFFS);
+            String pixelPerUnit = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_PIXEL_PER_UNIT);
+
+            Intent intent = new Intent(this, WoundImageEditActivity.class);
+            intent.putExtra("croppedImagePath",   aiData.getCroppedImagePath());
+            intent.putExtra("croppedGrabcutMask", aiData.getCropped_Grabcut_mask());
+            intent.putExtra("primaryColor",       primaryColor);
+            intent.putExtra("areaCoeffs",         areaCoeffs);
+            intent.putExtra("pixelPerUnit",       pixelPerUnit);
+            intent.putExtra("area",            aiData.getWoundArea());
+            intent.putExtra("depth",           aiData.getWoundDepth());
+            intent.putExtra("lensFocusDistance",  lensFocusDistance != null ? lensFocusDistance : "0");
+            startActivityForResult(intent, REQ_WOUND_EDIT);
+        } else {
+            showFinalResults(woundAnalysis, null);
+        }
+    }
+
+
+    private void showEditDimensionsBottomSheet() {
+        com.google.android.material.bottomsheet.BottomSheetDialog bottomSheetDialog = new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+        View bottomSheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_edit_dimensions, null);
+        bottomSheetDialog.setContentView(bottomSheetView);
+
+        com.google.android.material.textfield.TextInputEditText editArea = bottomSheetView.findViewById(R.id.edit_area_input);
+        com.google.android.material.textfield.TextInputEditText editWidth = bottomSheetView.findViewById(R.id.edit_width_input);
+        com.google.android.material.textfield.TextInputEditText editLength = bottomSheetView.findViewById(R.id.edit_length_input);
+        com.google.android.material.textfield.TextInputEditText editDepth = bottomSheetView.findViewById(R.id.edit_depth_input);
+        
+        com.google.android.material.button.MaterialButton btnCancel = bottomSheetView.findViewById(R.id.btn_cancel);
+        com.google.android.material.button.MaterialButton btnSave = bottomSheetView.findViewById(R.id.btn_save);
+
+        // Pre-fill
+        editArea.setText(binding.woundAreaTxt.getText().toString().replace(" cm²", "").replace("-", "").trim());
+        editWidth.setText(binding.woundWidthTxt.getText().toString().replace(" cm", "").replace("-", "").trim());
+        editLength.setText(binding.woundLengthTxt.getText().toString().replace(" cm", "").replace("-", "").trim());
+        editDepth.setText(binding.woundDepthTxt.getText().toString().replace(" mm", "").replace("-", "").trim());
+
+        btnCancel.setOnClickListener(v -> bottomSheetDialog.dismiss());
+        btnSave.setOnClickListener(v -> {
+            String areaStr = editArea.getText().toString().trim();
+            String widthStr = editWidth.getText().toString().trim();
+            String lengthStr = editLength.getText().toString().trim();
+            String depthStr = editDepth.getText().toString().trim();
+
+            Double area = areaStr.isEmpty() ? 0.0 : Double.parseDouble(areaStr);
+            Double width = widthStr.isEmpty() ? 0.0 : Double.parseDouble(widthStr);
+            Double length = lengthStr.isEmpty() ? 0.0 : Double.parseDouble(lengthStr);
+            Double depth = depthStr.isEmpty() ? 0.0 : Double.parseDouble(depthStr);
+
+            if (loadingDialog == null) {
+                loadingDialog = new LoadingDialog(SymptomQuestionActivity.this);
+            }
+            loadingDialog.show();
+            loadingDialog.updateTitle("Please Wait");
+            loadingDialog.updateMessage("Updating measurements...");
+
+            EditWoundMeasurementsRequest request = new EditWoundMeasurementsRequest(userId, sessionId, area, length, width, depth);
+            repository.editWoundMeasurements(
+                    request,
+                    null,   // no axis image from the type-values bottom sheet
+                    token,
+                    new Repository.GetCommonAPIDataSuccessCallBack() {
+                @Override
+                public void getCommonAPIDataSuccess(ResponseBody models) {
+                    loadingDialog.dismiss();
+                    if (!areaStr.isEmpty()) binding.woundAreaTxt.setText(areaStr + " cm²");
+                    if (!widthStr.isEmpty()) binding.woundWidthTxt.setText(widthStr + " cm");
+                    if (!lengthStr.isEmpty()) binding.woundLengthTxt.setText(lengthStr + " cm");
+                    if (!depthStr.isEmpty()) binding.woundDepthTxt.setText(depthStr + " mm");
+
+                    bottomSheetDialog.dismiss();
+                }
+
+                @Override
+                public void getCommonAPIDataFailure(String message) {
+                    loadingDialog.dismiss();
+                    String errorMsg = message != null && !message.isEmpty() ? message : "Error processing updating measurements";
+                    Toast.makeText(SymptomQuestionActivity.this, errorMsg, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onProgressUpdate(int progress) {
+                    // No implementation needed for progress here
+                }
+            });
+        });
+
+        bottomSheetDialog.show();
     }
 
     private void showErrorState() {
@@ -1039,7 +1302,9 @@ public class SymptomQuestionActivity extends AppCompatActivity {
                 Log.d(TAG, "Skip button clicked - returning success result");
                 returnResultSuccess();
             });
-            Glide.with(this).load(imageUrl).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.originalImage);
+            Glide.with(this).load(imageUrl).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.originalImage);
+            binding.originalImage.setOnClickListener(v -> showFullScreenImage(imageUrl));
+
 
             // Show error message
 //            Toast.makeText(this, "Unable to load AI analysis results", Toast.LENGTH_LONG).show();
@@ -1083,6 +1348,154 @@ public class SymptomQuestionActivity extends AppCompatActivity {
                 Log.e(TAG, "Error hiding loading dialog", e);
             }
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // ── Wound Image Edit result ───────────────────────────────────────
+        if (requestCode == REQ_WOUND_EDIT) {
+            if (resultCode == RESULT_OK && data != null) {
+                double lengthCm = data.getDoubleExtra(WoundImageEditActivity.EXTRA_LENGTH_CM, 0);
+                double widthCm  = data.getDoubleExtra(WoundImageEditActivity.EXTRA_WIDTH_CM,  0);
+                String imgPath  = data.getStringExtra(WoundImageEditActivity.EXTRA_IMAGE_PATH);
+                String area     = data.getStringExtra("area");
+                String depth    = data.getStringExtra("depth");
+
+                // Parse area/depth strings safely to Double
+                double areaVal  = 0.0, depthVal = 0.0;
+                try { if (area  != null && !area.isEmpty())  areaVal  = Double.parseDouble(area);  } catch (Exception ignored) {}
+                try { if (depth != null && !depth.isEmpty()) depthVal = Double.parseDouble(depth); } catch (Exception ignored) {}
+
+                // Save edited values as instance fields so they survive showFinalResults() rewrite
+                editedLengthCm = lengthCm;
+                editedWidthCm  = widthCm;
+                editedAreaVal  = areaVal;
+                editedDepthVal = depthVal;
+                editedImgPath  = imgPath;
+
+                // Call editWoundMeasurements API to persist new dimensions
+                if (lengthCm > 0 || widthCm > 0) {
+                    showLoadingDialog("Saving Measurements", "Updating wound dimensions...");
+
+                    EditWoundMeasurementsRequest request = new EditWoundMeasurementsRequest(
+                            userId, sessionId, areaVal, lengthCm, widthCm, depthVal);
+
+                    repository.editWoundMeasurements(
+                            request,
+                            imgPath,   // axis image captured by WoundImageEditActivity
+                            token,
+                            new Repository.GetCommonAPIDataSuccessCallBack() {
+                        @Override
+                        public void getCommonAPIDataSuccess(ResponseBody models) {
+                            Log.d(TAG, "Wound measurements updated: length=" + lengthCm + " width=" + widthCm);
+                            runOnUiThread(() -> {
+                                hideLoadingDialog();
+                                showFinalResults(woundAnalysis, null);
+                                applyEditedMeasurementsOverride();
+                            });
+                        }
+
+                        @Override
+                        public void getCommonAPIDataFailure(String message) {
+                            Log.w(TAG, "editWoundMeasurements failed: " + message);
+                            runOnUiThread(() -> {
+                                hideLoadingDialog();
+                                showFinalResults(woundAnalysis, null);
+                                applyEditedMeasurementsOverride();
+                            });
+                        }
+
+                        @Override
+                        public void onProgressUpdate(int progress) {}
+                    });
+                } else {
+                    showFinalResults(woundAnalysis, null);
+                    applyEditedMeasurementsOverride();
+                }
+            } else {
+                // User pressed back/cancelled - still show the results screen with original AI defaults
+                showFinalResults(woundAnalysis, null);
+            }
+            return;
+        }
+
+        // ── Lasso result ──────────────────────────────────────────────────
+        if (requestCode == LASSO_MARK_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+
+            String overlayPath = data.getStringExtra("overlayPath");
+            String imagePath   = data.getStringExtra("imagePath");
+            float[] coords     = data.getFloatArrayExtra("coordinates");
+
+            Log.d(TAG, "LassoActivity returned. overlayPath=" + overlayPath + " imagePath=" + imagePath + " coords length=" + (coords != null ? coords.length : 0));
+
+            lensFocusDistance = data.getStringExtra("lensFocusDistance");
+            woundId           = data.getStringExtra("woundId");
+            sessionId         = data.getStringExtra("sessionId");
+            userId            = data.getStringExtra("userId");
+            token             = data.getStringExtra("token");
+            coinType          = data.getStringExtra("coinType");
+            woundScoreRequired = data.getBooleanExtra("woundScoreRequired", true);
+
+            // Convert float[] to List<Double>
+            List<Double> lassoCoords = new ArrayList<>();
+            if (coords != null) {
+                for (float f : coords) {
+                    lassoCoords.add((double) f);
+                }
+            }
+
+            // Save lasso coords for future reprocessing
+            currentLassoCoords = lassoCoords;
+            
+            // Clear previous manual measurement overrides before reprocessing
+            editedLengthCm = 0;
+            editedWidthCm = 0;
+            editedAreaVal = 0;
+            editedDepthVal = 0;
+            editedImgPath = null;
+
+            // Use imagePath as imageUrl if returned (S3 URL from lasso), else keep existing imageUrl
+            if (imagePath != null && !imagePath.isEmpty()) {
+                imageUrl = imagePath;
+            }
+
+            // Remove old results from view while reprocessing
+            woundAnalysis = null;
+            binding.modelResultLayout.setVisibility(View.GONE);
+            binding.noWoundDetectedLayout.setVisibility(View.GONE);
+
+            // Always reprocess with the coordinates — use imageUrl (S3 URL)
+            String reprocessImageUrl = (imageUrl != null) ? imageUrl : imagePath;
+
+            if (reprocessImageUrl == null) {
+                Log.w(TAG, "LassoActivity: no image URL available, cannot reprocess");
+                Toast.makeText(this, "No image available to reprocess", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Show loading dialog
+            showLoadingDialog("Analyzing Manual Mark", "Processing wound analysis for selected area...");
+
+            // Trigger re-analysis with manual lasso coordinates
+            String areaCoff      = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_AREA_COEFFS);
+            String pixelPerUnit  = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_PIXEL_PER_UNIT);
+            double focusDistance = 0.0;
+            try {
+                if (lensFocusDistance != null && !lensFocusDistance.isEmpty()) {
+                    focusDistance = Double.parseDouble(lensFocusDistance);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Focus distance parse failed", e);
+            }
+
+            // Reset processing guard — lasso always triggers a fresh API call
+            isProcessingAI.set(false);
+            isAiProcessingCompleted = false;
+
+            processAIModelImageInBackground(userId, sessionId, reprocessImageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg);
+        }
     }
 
     private void animateSlideIn() {

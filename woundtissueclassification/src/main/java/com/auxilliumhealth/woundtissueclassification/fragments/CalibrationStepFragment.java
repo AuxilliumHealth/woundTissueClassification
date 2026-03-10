@@ -41,11 +41,13 @@ public class CalibrationStepFragment extends Fragment {
     private static final String ARG_TOKEN = "token";
     private static final String ARG_PRIMARY_COLOR = "primaryColor";
     private static final String ARG_WOUND_SCORE_REQUIRED = "woundScoreRequired";
+    private static final String ARG_WOUND_LOCATION_REQUIRED = "woundLocationRequired";
+
 
 
     private int step;
     private String sessionId, userId, woundId, token, primaryColor;
-    private boolean woundScoreRequired;
+    private boolean woundScoreRequired, woundLocationRequired;
 
     private ViewPager2 viewPager;
     private CalibrationViewModel calibrationViewModel;
@@ -65,7 +67,7 @@ public class CalibrationStepFragment extends Fragment {
         // Required empty public constructor
     }
 
-    public static CalibrationStepFragment newInstance(int step, String sessionId, String userId, String woundId, String token, String primaryColor, boolean woundScoreRequired) {
+    public static CalibrationStepFragment newInstance(int step, String sessionId, String userId, String woundId, String token, String primaryColor, boolean woundScoreRequired, boolean woundLocationRequired) {
         CalibrationStepFragment fragment = new CalibrationStepFragment();
         Bundle args = new Bundle();
         args.putInt(ARG_STEP, step);
@@ -75,6 +77,7 @@ public class CalibrationStepFragment extends Fragment {
         args.putString(ARG_TOKEN, token);
         args.putString(ARG_PRIMARY_COLOR, primaryColor);
         args.putBoolean(ARG_WOUND_SCORE_REQUIRED, woundScoreRequired);
+        args.putBoolean(ARG_WOUND_LOCATION_REQUIRED, woundLocationRequired);
         fragment.setArguments(args);
         return fragment;
     }
@@ -94,6 +97,7 @@ public class CalibrationStepFragment extends Fragment {
             token = getArguments().getString(ARG_TOKEN);
             primaryColor = getArguments().getString(ARG_PRIMARY_COLOR);
             woundScoreRequired = getArguments().getBoolean(ARG_WOUND_SCORE_REQUIRED);
+            woundLocationRequired = getArguments().getBoolean(ARG_WOUND_LOCATION_REQUIRED);
         }
         calibrationViewModel = new ViewModelProvider(requireActivity()).get(CalibrationViewModel.class);
     }
@@ -367,6 +371,7 @@ public class CalibrationStepFragment extends Fragment {
             i.putExtra("token", token);
             i.putExtra("primaryColor", primaryColor);
             i.putExtra("woundScoreRequired", woundScoreRequired);
+            i.putExtra("woundLocationRequired", woundLocationRequired);
 
             startActivity(i);
             getActivity().finish();

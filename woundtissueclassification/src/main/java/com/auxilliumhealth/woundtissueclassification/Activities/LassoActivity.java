@@ -18,6 +18,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,64 +28,91 @@ import com.auxilliumhealth.woundtissueclassification.Model.ResultDataModel;
 import com.auxilliumhealth.woundtissueclassification.R;
 import com.auxilliumhealth.woundtissueclassification.Utils.CoinDetector;
 import com.auxilliumhealth.woundtissueclassification.Utils.LassoView;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class LassoActivity extends AppCompatActivity {
 
     private ImageView imageView;
     private LassoView lassoView;
-    private MaterialButton saveButton, undoButton;
+    private MaterialButton saveButton, clearButton;
+    private CircularProgressIndicator loadingProgress;
     private int imagePosition = -1;
     private float[] croppedCoords;
     private File originalFile;
-    private String primaryColor;
+    private String primaryColor,whereFrom;
+    private String lensFocusDistance, woundId, sessionId, coinType, userId, token;
+    private boolean woundScoreRequired = true;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_lasso);
+        
         if (!OpenCVLoader.initDebug()) {
             Log.e("CoinDetector", "OpenCV initialization failed.");
-        } else {
-            Log.d("CoinDetector", "OpenCV initialized successfully.");
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Window window = getWindow();
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(ContextCompat.getColor(this, android.R.color.primary_text_light));
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR); // dark icons
-        }
-        primaryColor = getIntent().getStringExtra("primaryColor");
+        initializeColorAndStatusbar();
+
         imageView = findViewById(R.id.imageView);
         lassoView = findViewById(R.id.lassoView);
         saveButton = findViewById(R.id.saveButton);
-        undoButton = findViewById(R.id.undoButton);
+        clearButton = findViewById(R.id.clearButton);
+        
+        initializeUIText();
+
         AppBarLayout appBarLayout = findViewById(R.id.app_bar_layout);
         MaterialToolbar materialToolbar = findViewById(R.id.material_toolbar);
-        materialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
-        appBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
-        saveButton.setBackgroundColor(Color.parseColor(primaryColor));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
+        
+        if (primaryColor != null) {
+            try {
+                int color = Color.parseColor(primaryColor);
+                materialToolbar.setBackgroundColor(color);
+                appBarLayout.setBackgroundColor(color);
+                saveButton.setRippleColorResource(android.R.color.white);
+                saveButton.setBackgroundColor(color);
+            } catch (IllegalArgumentException e) {
+                Log.e("LassoActivity", "Invalid primary color: " + primaryColor);
+            }
         }
 
+        materialToolbar.setNavigationOnClickListener(v -> finish());
+        
         lassoView.setImageView(imageView);
 
         String imagePath = getIntent().getStringExtra("imagePath");
         imagePosition = getIntent().getIntExtra("position", -1);
+        whereFrom=getIntent().getStringExtra("whereFrom");
+        lensFocusDistance = getIntent().getStringExtra("lensFocusDistance");
+        woundId = getIntent().getStringExtra("woundId");
+        sessionId = getIntent().getStringExtra("sessionId");
+        userId = getIntent().getStringExtra("userId");
+        token = getIntent().getStringExtra("token");
+        coinType = getIntent().getStringExtra("coinType");
+        woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
+
+
 
         if (imagePath == null || imagePath.isEmpty()) {
             Toast.makeText(this, "Image path not found.", Toast.LENGTH_SHORT).show();
@@ -93,10 +121,62 @@ public class LassoActivity extends AppCompatActivity {
         }
 
         originalFile = new File(imagePath);
-        loadImageFromFilePath(imagePath);
+        loadingProgress = findViewById(R.id.loadingProgress);
+        loadImage(imagePath);
 
         saveButton.setOnClickListener(v -> saveLassoOverlay(imagePath));
-        undoButton.setOnClickListener(v -> lassoView.undo());
+        clearButton.setOnClickListener(v -> lassoView.clear());
+
+        // Initial state
+        saveButton.setEnabled(false);
+        saveButton.setAlpha(0.6f);
+
+        lassoView.setOnPathChangedListener(hasPath -> {
+            saveButton.setEnabled(hasPath);
+            saveButton.setAlpha(hasPath ? 1.0f : 0.6f);
+            
+            if (hasPath) {
+                clearButton.setVisibility(View.VISIBLE);
+            } else {
+                // Keep them visible but maybe we can hide them or just keep as is
+            }
+        });
+    }
+
+    private void initializeUIText() {
+        MaterialToolbar materialToolbar = findViewById(R.id.material_toolbar);
+        TextView instructionText = findViewById(R.id.instructionText);
+        
+        if ("Calibration".equalsIgnoreCase(whereFrom)) {
+            materialToolbar.setTitle("Coin Calibration");
+            instructionText.setText("Draw around the coin area");
+            saveButton.setText("Done");
+        } else {
+            materialToolbar.setTitle("Mark Wound Region");
+            instructionText.setText("Draw around the wound area");
+            saveButton.setText("Done");
+        }
+    }
+
+    private void initializeColorAndStatusbar() {
+        primaryColor = getIntent().getStringExtra("primaryColor");
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            if (primaryColor != null) {
+                window.setStatusBarColor(Color.parseColor(primaryColor));
+            } else {
+                window.setStatusBarColor(ContextCompat.getColor(this, android.R.color.black));
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // Since we have a dark background/primary color usually, 
+            // we don't necessarily want light status bar icons.
+            // But let's follow the previous logic if it was intended.
+            // getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        }
     }
 
     private void saveLassoOverlay(String imagePath) {
@@ -109,19 +189,47 @@ public class LassoActivity extends AppCompatActivity {
         }
 
         try {
+            File cacheDir = new File(getCacheDir(), "lasso_processing");
+            if (!cacheDir.exists()) {
+                cacheDir.mkdirs();
+            }
+            File overlayFile = new File(cacheDir, "overlay_" + originalFile.getName());
+            
+            // Save the overlay (image with lasso drawn)
+            try (FileOutputStream out = new FileOutputStream(overlayFile)) {
+                finalImage.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            }
+
+            if (!"Calibration".equalsIgnoreCase(whereFrom)) {
+                // Non-calibration mode: Return coordinates and overlay path only
+                Intent resultIntent = new Intent();
+                resultIntent.putExtra("overlayPath", overlayFile.getAbsolutePath());
+                resultIntent.putExtra("imagePath", imagePath);
+                resultIntent.putExtra("position", imagePosition);
+                resultIntent.putExtra("coordinates", croppedCoords);
+                resultIntent.putExtra("lensFocusDistance", lensFocusDistance);
+                resultIntent.putExtra("woundId", woundId);
+                resultIntent.putExtra("sessionId", sessionId);
+                resultIntent.putExtra("userId", userId);
+                resultIntent.putExtra("token", token);
+                resultIntent.putExtra("coinType", coinType);
+                resultIntent.putExtra("woundScoreRequired", woundScoreRequired);
+                setResult(RESULT_OK, resultIntent);
+                finish();
+                return;
+            }
+
+            // Calibration mode: Run CoinDetector
             Mat overlayMat = new Mat();
             Mat croppedMat = new Mat();
             Utils.bitmapToMat(finalImage, overlayMat);
             Utils.bitmapToMat(croppedImage, croppedMat);
 
-            File cacheDir = new File(getCacheDir(), "calibration");
-            if (!cacheDir.exists()) {
-                cacheDir.mkdirs();
+            File calibCacheDir = new File(getCacheDir(), "calibration");
+            if (!calibCacheDir.exists()) {
+                calibCacheDir.mkdirs();
             }
-            File overlayFile = new File(cacheDir, "overlay_" + originalFile.getName());
-            File croppedFile = new File(cacheDir, "cropped_" + originalFile.getName());
-
-            saveMatToFile(overlayMat, overlayFile);
+            File croppedFile = new File(calibCacheDir, "cropped_" + originalFile.getName());
             saveMatToFile(croppedMat, croppedFile);
 
             try {
@@ -145,18 +253,19 @@ public class LassoActivity extends AppCompatActivity {
                 }
 
                 resultIntent.putExtra("position", imagePosition);
+                resultIntent.putExtra("coordinates", croppedCoords);
                 setResult(RESULT_OK, resultIntent);
                 finish();
 
             } catch (CoinDetector.CustomError e) {
                 e.printStackTrace();
-                Toast.makeText(this, "Detection error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Unable to process calibration. Please try again.", Toast.LENGTH_SHORT).show();
                 returnWithFallbackPath(imagePath);
             }
 
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Save failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to save information. Please try again.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -183,13 +292,84 @@ public class LassoActivity extends AppCompatActivity {
         }
     }
 
-    private void loadImageFromFilePath(String imagePath) {
-        Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-        if (bitmap != null) {
-            imageView.setImageBitmap(bitmap);
+    private void loadImage(String imagePath) {
+        if (imagePath == null || imagePath.isEmpty()) return;
+
+        if (imagePath.startsWith("http")) {
+            loadingProgress.setVisibility(View.VISIBLE);
+            
+            // For remote URLs, we use Glide to load it into the ImageView
+            // We also attempt to get the file so downstream logic (CoinDetector) works
+            Glide.with(this)
+                .asBitmap()
+                .load(imagePath)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .listener(new RequestListener<Bitmap>() {
+                    @Override
+                    public boolean onLoadFailed(GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                        runOnUiThread(() -> {
+                            loadingProgress.setVisibility(View.GONE);
+                            Toast.makeText(LassoActivity.this, "Failed to load remote image", Toast.LENGTH_SHORT).show();
+                            finish();
+                        });
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                        runOnUiThread(() -> {
+                            loadingProgress.setVisibility(View.GONE);
+                            imageView.setImageBitmap(resource);
+                            
+                            // Essential: trigger bounds calculation once image is actually set
+                            imageView.post(() -> {
+                                lassoView.calculateImageBounds();
+                            });
+
+                            // Try to get a local file for this URL
+                            new Thread(() -> {
+                                try {
+                                    File cacheFile = Glide.with(LassoActivity.this)
+                                        .asFile()
+                                        .load(imagePath)
+                                        .submit()
+                                        .get();
+                                    
+                                    // Copy to a permanent location in our cache for originalFile
+                                    File internalCache = new File(getCacheDir(), "original_images");
+                                    if (!internalCache.exists()) internalCache.mkdirs();
+                                    File localCopy = new File(internalCache, "remote_" + System.currentTimeMillis() + ".jpg");
+                                    
+                                    try (InputStream in = new FileInputStream(cacheFile);
+                                         OutputStream out = new FileOutputStream(localCopy)) {
+                                        byte[] buf = new byte[8192];
+                                        int read;
+                                        while ((read = in.read(buf)) > 0) {
+                                            out.write(buf, 0, read);
+                                        }
+                                    }
+                                    
+                                    originalFile = localCopy;
+                                    Log.d("LassoActivity", "Remote image cached locally at: " + originalFile.getAbsolutePath());
+                                } catch (Exception e) {
+                                    Log.e("LassoActivity", "Error caching remote image", e);
+                                }
+                            }).start();
+                        });
+                        return true;
+                    }
+                })
+                .into(imageView);
         } else {
-            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
-            finish();
+            // Local file logic
+            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+                originalFile = new File(imagePath);
+            } else {
+                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                finish();
+            }
         }
     }
 
@@ -226,8 +406,8 @@ public class LassoActivity extends AppCompatActivity {
         if (original == null || lassoView.getAllPaths().isEmpty()) return null;
 
         Matrix matrix = new Matrix();
-        float scaleX = original.getWidth() / lassoView.getImageBounds().width();
-        float scaleY = original.getHeight() / lassoView.getImageBounds().height();
+        float scaleX = (float) original.getWidth() / lassoView.getImageBounds().width();
+        float scaleY = (float) original.getHeight() / lassoView.getImageBounds().height();
         matrix.postScale(scaleX, scaleY);
         matrix.postTranslate(-lassoView.getImageBounds().left * scaleX, -lassoView.getImageBounds().top * scaleY);
 
@@ -247,7 +427,36 @@ public class LassoActivity extends AppCompatActivity {
             return null;
         }
 
-        croppedCoords = new float[]{bounds.left, bounds.top, bounds.right, bounds.bottom};
+        // Calculate exact bounding box for the server (in original bitmap pixels first)
+        float xmin = bounds.left;
+        float ymin = bounds.top;
+        float xmax = bounds.right;
+        float ymax = bounds.bottom;
+
+        // Scale coordinates from downsampled bitmap pixels to original file pixels
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(originalFile.getAbsolutePath(), options);
+        
+        int fullWidth = options.outWidth;
+        int fullHeight = options.outHeight;
+        
+        if (fullWidth > 0 && fullHeight > 0) {
+            float fileScaleX = (float) fullWidth / original.getWidth();
+            float fileScaleY = (float) fullHeight / original.getHeight();
+            
+            croppedCoords = new float[]{
+                    xmin * fileScaleX,
+                    ymin * fileScaleY,
+                    xmax * fileScaleX,
+                    ymax * fileScaleY
+            };
+            Log.d("LassoActivity", String.format("Scaled coords to file (%dx%d): [%.2f, %.2f, %.2f, %.2f]", 
+                fullWidth, fullHeight, croppedCoords[0], croppedCoords[1], croppedCoords[2], croppedCoords[3]));
+        } else {
+            // Fallback if file reading fails
+            croppedCoords = new float[]{xmin, ymin, xmax, ymax};
+        }
 
         return Bitmap.createBitmap(original, cropRect.left, cropRect.top, cropRect.width(), cropRect.height());
     }

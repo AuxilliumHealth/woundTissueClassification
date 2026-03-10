@@ -6,18 +6,23 @@ public class AiModelData {
     private float ErythemaPercent;
     private float MacerationPercent;
     private String Post_Processing;
-    private double WoundLength;
+    private Double WoundLength;
     private float NormalPercent;
     private String DisplayImagePath;
     private float CallusPercent;
     private float NormalTissuePercent;
-    private double WoundWidth;
+    private Double WoundWidth;
     private double lens_focal_distance;
     private float SloughPercent;
-    private double WoundArea;
+    private Double WoundArea;
+    private Double WoundDepth;
     private String WoundTissueOverlayImagePath;
     private String PeriWoundTissueOverlayImagePath;
     private String WoundPeriwoundOverlayImagePath;
+    private String WoundMeasurementOverlayImagePath;
+    private String ClockwiseMappingVisualizationImagePath;
+    private String cropped_Grabcut_mask;
+
     private List<Double> area_coeffs;
     private float GranulationPercent;
     private String CroppedImagePath;
@@ -59,11 +64,11 @@ public class AiModelData {
         Post_Processing = post_Processing;
     }
 
-    public double getWoundLength() {
+    public Double getWoundLength() {
         return WoundLength;
     }
 
-    public void setWoundLength(double woundLength) {
+    public void setWoundLength(Double woundLength) {
         WoundLength = woundLength;
     }
 
@@ -99,11 +104,11 @@ public class AiModelData {
         NormalTissuePercent = normalTissuePercent;
     }
 
-    public double getWoundWidth() {
+    public Double getWoundWidth() {
         return WoundWidth;
     }
 
-    public void setWoundWidth(double woundWidth) {
+    public void setWoundWidth(Double woundWidth) {
         WoundWidth = woundWidth;
     }
 
@@ -123,12 +128,20 @@ public class AiModelData {
         SloughPercent = sloughPercent;
     }
 
-    public double getWoundArea() {
+    public Double getWoundArea() {
         return WoundArea;
     }
 
-    public void setWoundArea(double woundArea) {
+    public void setWoundArea(Double woundArea) {
         WoundArea = woundArea;
+    }
+
+    public Double getWoundDepth() {
+        return WoundDepth;
+    }
+
+    public void setWoundDepth(Double woundDepth) {
+        WoundDepth = woundDepth;
     }
 
     public String getWoundTissueOverlayImagePath() {
@@ -193,5 +206,28 @@ public class AiModelData {
 
     public void setPixel_per_unit_coeffs(List<Double> pixel_per_unit_coeffs) {
         this.pixel_per_unit_coeffs = pixel_per_unit_coeffs;
+    }
+
+    public String getWoundMeasurementOverlayImagePath() {
+        return WoundMeasurementOverlayImagePath;
+    }
+
+    public void setWoundMeasurementOverlayImagePath(String woundMeasurementOverlayImagePath) {
+        WoundMeasurementOverlayImagePath = woundMeasurementOverlayImagePath;
+    }
+    public String getClockwiseMappingVisualizationImagePath() {
+        return ClockwiseMappingVisualizationImagePath;
+    }
+
+    public void setClockwiseMappingVisualizationImagePath(String clockwiseMappingVisualizationImagePath) {
+        ClockwiseMappingVisualizationImagePath = clockwiseMappingVisualizationImagePath;
+    }
+
+    public String getCropped_Grabcut_mask() {
+        return cropped_Grabcut_mask;
+    }
+
+    public void setCropped_Grabcut_mask(String cropped_Grabcut_mask) {
+        this.cropped_Grabcut_mask = cropped_Grabcut_mask;
     }
 }

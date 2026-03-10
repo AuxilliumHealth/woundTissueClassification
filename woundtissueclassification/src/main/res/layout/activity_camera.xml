@@ -44,6 +44,7 @@
         app:layout_constraintTop_toBottomOf="@+id/previewView"
         app:layout_constraintWidth_percent="0.9"/>
 
+
     <LinearLayout
         android:id="@+id/progressContainer"
         android:layout_width="0dp"
@@ -210,13 +211,25 @@
 
     <com.auxilliumhealth.woundtissueclassification.Utils.FocusCircle
         android:id="@+id/focusIndicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+
         app:layout_constraintBottom_toBottomOf="@+id/previewView"
         app:layout_constraintEnd_toEndOf="@+id/previewView"
         app:layout_constraintStart_toStartOf="@+id/previewView"
         app:layout_constraintTop_toTopOf="@+id/previewView"
         android:visibility="gone" />
+
+    <com.auxilliumhealth.woundtissueclassification.Utils.CameraGridOverlay
+        android:id="@+id/cameraGrid"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/previewView"
+        app:layout_constraintEnd_toEndOf="@+id/previewView"
+        app:layout_constraintStart_toStartOf="@+id/previewView"
+        app:layout_constraintTop_toTopOf="@+id/previewView" />
+
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/permissionButton"

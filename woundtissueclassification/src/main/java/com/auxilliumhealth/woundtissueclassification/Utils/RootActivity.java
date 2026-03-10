@@ -20,16 +20,21 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 
 import androidx.activity.result.ActivityResultLauncher;
+
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.auxilliumhealth.woundtissueclassification.R;
+import com.bumptech.glide.Glide;
 import com.google.android.material.button.MaterialButton;
+
 
 public class RootActivity extends AppCompatActivity {
     public String TAG;
@@ -157,7 +162,28 @@ public class RootActivity extends AppCompatActivity {
         builder.show();
     }
 
+    public void showFullScreenImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) return;
+
+        Dialog fullImageDialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        fullImageDialog.setContentView(R.layout.dialog_full_image_zoom);
+        fullImageDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.BLACK));
+        
+        ImageView fullImageView = fullImageDialog.findViewById(R.id.fullImageView);
+        ImageButton btnClose = fullImageDialog.findViewById(R.id.btnClose);
+
+        Glide.with(this)
+                .load(imageUrl)
+                .placeholder(R.drawable.image_placeholder)
+                .error(R.drawable.image_error)
+                .into(fullImageView);
+
+        btnClose.setOnClickListener(v -> fullImageDialog.dismiss());
+        fullImageDialog.show();
+    }
+
     public static void cancelDialog(Context context) {
+
         if (builder != null) {
             builder.dismiss();
             builder.cancel();

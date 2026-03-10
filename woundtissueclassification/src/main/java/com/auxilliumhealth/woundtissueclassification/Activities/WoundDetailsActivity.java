@@ -28,6 +28,7 @@ import com.auxilliumhealth.woundtissueclassification.UiComponent.PieHelper;
 import com.auxilliumhealth.woundtissueclassification.Utils.RootActivity;
 import com.auxilliumhealth.woundtissueclassification.databinding.ActivityWoundDetailsBinding;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
@@ -67,7 +68,9 @@ public class WoundDetailsActivity extends RootActivity {
         }
         binding.resultMaterialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
         binding.resultAppBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
+        binding.resultMaterialToolbar.setNavigationOnClickListener(v -> finish());
         getWoundDetails(userId,sessionId,woundId,token);
+
 
     }
     private void getWoundDetails(String userId,String sessionId, String woundId, String token) {
@@ -126,7 +129,9 @@ showLoader();
             binding.modelResultLayout.setVisibility(View.VISIBLE);
 
 
-            if (result != null && result.getAiModelData() != null&&result.getAiModelData().getDisplayImagePath() != null) {
+            if (result != null && result.getAiModelData() != null && result.getAiModelData().getDisplayImagePath() != null) {
+                binding.noWoundDetectedLayout.setVisibility(View.GONE);
+                binding.woundDetectedLayoutLayout.setVisibility(View.VISIBLE);
                 displayAIResults(result);
                 // Create a data class first
                 ArrayList<AnalysisImage> imageList = new ArrayList<>();
@@ -146,7 +151,7 @@ showLoader();
                 // FIXED: Properly set the click listener for finish button
 
             } else {
-                showErrorState(result.getImageUrl());
+                showErrorState(result != null ? result.getImageUrl() : null);
             }
 
 
@@ -197,12 +202,13 @@ showLoader();
                 }
 
                 binding.riskLevelValueTextview.setTextColor(textColor);
-                binding.riskLevelTextview.setTextColor(textColor);
-                binding.woundScoreCard.setCardBackgroundColor(backgroundColor);
-            }else{
-                binding.woundScoreCard.setVisibility(View.GONE);
-
+                binding.riskStatusIndicator.setBackgroundColor(textColor);
+                binding.riskLevelValueTextview.setBackgroundTintList(ColorStateList.valueOf(backgroundColor));
+                binding.woundScoreCard.setCardBackgroundColor(Color.WHITE);
+            } else {
+                binding.woundScoreLayout.setVisibility(View.GONE);
             }
+
 
 
             displayWoundTissueAnalysis(binding.woundTissuePieChart, sloughPercent, escharPercent, granulationPercent, woundTissueNormalPercent);
@@ -286,14 +292,46 @@ showLoader();
             // Check if wound area is detected
             if (aiData.getWoundArea() > 0) {
                 binding.woundAreaLinearLayout.setVisibility(View.VISIBLE);
+
+                String tempImagePath = aiData.getClockwiseMappingVisualizationImagePath();
+                if (tempImagePath == null || tempImagePath.isEmpty()) {
+                    tempImagePath = aiData.getWoundMeasurementOverlayImagePath();
+                }
+                final String imagePath = tempImagePath;
+
+                if (imagePath != null && !imagePath.isEmpty()) {
+                    binding.woundMeasurementAxisCard.setVisibility(View.VISIBLE);
+                    binding.measurementDisclaimerTxt.setVisibility(View.VISIBLE);
+                    Glide.with(this).load(imagePath).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.woundMeasurementAxisImg);
+                } else {
+                    binding.woundMeasurementAxisCard.setVisibility(View.GONE);
+                    binding.measurementDisclaimerTxt.setVisibility(View.GONE);
+                }
+
+
                 // Display measurements
                 binding.woundAreaTxt.setText(String.format("%.2f cm²", aiData.getWoundArea()));
                 binding.woundWidthTxt.setText(String.format("%.2f cm", aiData.getWoundWidth()));
                 binding.woundLengthTxt.setText(String.format("%.2f cm", aiData.getWoundLength()));
+                // Use the getter from WoundDetailsModel.AiModelDataModel if it's available. Assuming getWoundDepth is added as for SymptomQuestionActivity logic.
+                Float depth = aiData.getWoundDepth();
+                if (depth != null) {
+                    binding.woundDepthTxt.setText(String.format("%.2f mm", depth));
+                } else {
+                    binding.woundDepthTxt.setText("- mm");
+                }
+
+                binding.woundMeasurementAxisImg.setOnClickListener(v -> showFullScreenImage(imagePath));
+
             } else {
                 // No wound detected
                 binding.woundAreaLinearLayout.setVisibility(View.GONE);
+                binding.measurementDisclaimerTxt.setVisibility(View.GONE);
             }
+
+
+
+
 
         } catch (Exception e) {
             Log.e(TAG, "Error displaying wound measurements", e);
@@ -306,7 +344,9 @@ showLoader();
             binding.noWoundDetectedLayout.setVisibility(View.VISIBLE);
             binding.woundDetectedLayoutLayout.setVisibility(View.GONE);
 
-            Glide.with(this).load(imageUrl).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.originalImage);
+            Glide.with(this).load(imageUrl).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.originalImage);
+            binding.originalImage.setOnClickListener(v -> showFullScreenImage(imageUrl));
+
 
             // Show error message
             Toast.makeText(this, "Unable to load AI analysis results", Toast.LENGTH_LONG).show();
@@ -322,13 +362,17 @@ showLoader();
         try {
             // Load original image
             if (aiData.getImageUrl() != null && !aiData.getImageUrl().isEmpty()) {
-                Glide.with(this).load(aiData.getImageUrl()).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.capturedImage);
+                Glide.with(this).load(aiData.getImageUrl()).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.capturedImage);
             }
 
             // Load bounding box/image with wound localization
             if (aiData.getAiModelData().getDisplayImagePath() != null && !aiData.getAiModelData().getDisplayImagePath().isEmpty()) {
-                Glide.with(this).load(aiData.getAiModelData().getDisplayImagePath()).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.boundingImage);
+                Glide.with(this).load(aiData.getAiModelData().getDisplayImagePath()).skipMemoryCache(true).diskCacheStrategy(DiskCacheStrategy.NONE).placeholder(R.drawable.image_placeholder).error(R.drawable.image_error).into(binding.boundingImage);
             }
+
+            binding.capturedImage.setOnClickListener(v -> showFullScreenImage(aiData.getImageUrl()));
+            binding.boundingImage.setOnClickListener(v -> showFullScreenImage(aiData.getAiModelData().getDisplayImagePath()));
+
 
         } catch (Exception e) {
             Log.e(TAG, "Error loading result images", e);

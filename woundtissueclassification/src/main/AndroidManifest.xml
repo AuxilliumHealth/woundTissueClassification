@@ -7,23 +7,18 @@
         android:required="true" />
 
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
 
     <uses-feature android:name="android.hardware.camera.any" />
 
     <queries>
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
-        </intent>
-        <intent>
-            <action android:name="android.intent.action.PICK" />
-
-            <data android:mimeType="vnd.android.cursor.dir/image" />
         </intent>
     </queries>
 
@@ -74,6 +69,9 @@
             android:screenOrientation="portrait"
             android:windowOptOutEdgeToEdgeEnforcement="true"
             android:windowSoftInputMode="stateAlwaysHidden" />
+        <activity
+            android:name=".Activities.WoundImageEditActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

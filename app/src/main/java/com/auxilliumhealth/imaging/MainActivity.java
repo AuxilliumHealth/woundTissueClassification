@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
         previewButton.setOnClickListener(v -> launchPreviewWithCallback());
 
         //reset calibration
-//        woundtissueclassification.resetCalibration(this);
+        woundtissueclassification.resetCalibration(this);
     }
 
     private void launchPreviewWithCallback() {
@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
                 "wound_id", // woundId (optional)
                 "token", // https://console.woundtele.com
                 "#2CA6CC", // primary color
-                true, //riskScore isRequired
+                false, //riskScore isRequired
                 false, //body selection isRequired
                 true //calibration isRequired
         );

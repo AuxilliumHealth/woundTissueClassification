@@ -2,7 +2,9 @@ package com.auxilliumhealth.woundtissueclassification.Adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
+
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -13,7 +15,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.auxilliumhealth.woundtissueclassification.Model.AiModelData;
 import com.auxilliumhealth.woundtissueclassification.Model.AnalysisImage;
 import com.auxilliumhealth.woundtissueclassification.R;
+import com.auxilliumhealth.woundtissueclassification.Utils.RootActivity;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textview.MaterialTextView;
 import com.google.gson.Gson;
@@ -42,8 +47,22 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, int position) {
         AnalysisImage result = analysisImageList.get(position);
-        Glide.with(mContext).load(result.getImageUrl()).thumbnail(Glide.with(mContext).load(R.drawable.image_error)).into(holder.woundImage);
+        Glide.with(mContext)
+                .load(result.getImageUrl())
+                .skipMemoryCache(true)
+                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                .thumbnail(Glide.with(mContext).load(R.drawable.image_error))
+                .into(holder.woundImage);
         holder.imageTitle.setText(result.getTitle());
+
+        holder.itemView.setOnClickListener(v -> {
+            if (mContext instanceof RootActivity) {
+                ((RootActivity) mContext).showFullScreenImage(result.getImageUrl());
+            } else {
+                Log.w("ImageAdapter", "Context is not an instance of RootActivity");
+            }
+        });
+
 
     }
 

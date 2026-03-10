@@ -5,19 +5,26 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.util.Log;
 
 public class GyroscopeChecker implements SensorEventListener {
 
     private SensorManager sensorManager;
     private Sensor gyroscope;
     private Sensor accelerometer;
+    private Sensor magnetometer;
     private boolean isGyroAvailable = false;
     private boolean isFlat = false;
     private OnFlatStatusChangeListener listener;
 
+    private float[] gravityMap = new float[3];
+    private float[] magneticMap = new float[3];
+    private float currentAzimuth = 0f;
+
     // Interface to send flat status updates
     public interface OnFlatStatusChangeListener {
         void onFlatStatusChanged(boolean isFlat);
+        void onAngleChanged(float azimuth);
     }
 
     // Constructor with listener
@@ -28,6 +35,7 @@ public class GyroscopeChecker implements SensorEventListener {
         if (sensorManager != null) {
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
             isGyroAvailable = (gyroscope != null);
         }
     }
@@ -43,29 +51,63 @@ public class GyroscopeChecker implements SensorEventListener {
         if (accelerometer != null) {
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         }
+        if (magnetometer != null) {
+            sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
+        }
     }
 
     public void stopListening() {
         sensorManager.unregisterListener(this);
     }
 
+    public float getCurrentAzimuthDegrees() {
+        return currentAzimuth;
+    }
+
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(event.values, 0, gravityMap, 0, event.values.length);
+
             float x = event.values[0]; // Left-Right tilt
             float y = event.values[1]; // Front-Back tilt
             float z = event.values[2]; // Gravity (should be ~9.8 when flat)
+
+            // Calculate exact angles in degrees
+            double pitchAngle = Math.atan2(y, Math.sqrt(x * x + z * z)) * 180 / Math.PI;
+            double rollAngle = Math.atan2(-x, z) * 180 / Math.PI;
 
             // Check if phone is flat
             boolean newFlatStatus = Math.abs(x) < 1.5 && Math.abs(y) < 1.5 && Math.abs(z - 9.8) < 1.5;
 
             if (newFlatStatus != isFlat) { // Only update if status changes
                 isFlat = newFlatStatus;
-//                Log.d("GyroscopeChecker", isFlat ? "Phone is FLAT." : "Phone is NOT flat.");
-
+                
                 // Notify the activity
                 if (listener != null) {
                     listener.onFlatStatusChanged(isFlat);
+                }
+            }
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(event.values, 0, magneticMap, 0, event.values.length);
+        }
+
+        // Calculate compass rotation if we have both sensor updates
+        if (gravityMap != null && magneticMap != null) {
+            float[] rotationMatrix = new float[9];
+            boolean success = SensorManager.getRotationMatrix(rotationMatrix, null, gravityMap, magneticMap);
+            if (success) {
+                float[] orientationAngles = new float[3];
+                SensorManager.getOrientation(rotationMatrix, orientationAngles);
+
+                // Azimuth is orientationAngles[0]
+                float azimuthInRadians = orientationAngles[0];
+                float azimuthInDegrees = (float) (Math.toDegrees(azimuthInRadians) + 360) % 360;
+                
+                currentAzimuth = azimuthInDegrees;
+                
+                if (listener != null) {
+                    listener.onAngleChanged(currentAzimuth);
                 }
             }
         }

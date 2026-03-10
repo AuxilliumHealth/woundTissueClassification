@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -44,6 +45,8 @@ public class WoundLocationActivity extends RootActivity {
                     finish();
                 } else {
                     Log.w(TAG, "❌ No result returned or operation cancelled.");
+                    setResult(RESULT_CANCELED);
+                    finish();
                 }
             });
     @Override
@@ -59,15 +62,25 @@ public class WoundLocationActivity extends RootActivity {
          woundLocationRequired = getIntent().getBooleanExtra("woundLocationRequired", true);
 
         woundLocation = getIntent().getStringExtra("woundLocation");
-        primaryColor = getIntent().getStringExtra("primaryColor");
+        if (primaryColor == null || primaryColor.isEmpty()) {
+            primaryColor = "#007AFF"; // Keep as string for parsing later
+        }
+
+        try {
+            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting status bar color", e);
+            // Fallback to a safe color if primaryColor is invalid
+            primaryColor = "#007AFF";
+            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
+        }
+
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
 
         woundId = getIntent().getStringExtra("woundId");
         viewModel = new ViewModelProvider(this).get(WoundLocationViewModel.class);
         observeViewModel();
         if (woundLocation == null) woundLocation = "";
-
-        getWindow().setStatusBarColor(Color.parseColor(primaryColor));
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         if (woundLocationRequired) {
             // Pass data to fragment using newInstance
             WoundLocationFragment fragment = new WoundLocationFragment();
@@ -134,7 +147,7 @@ public class WoundLocationActivity extends RootActivity {
                     i.putExtra("woundLocationRequired", woundLocationRequired);
                     // Start CameraActivity with startActivityForResult
                     woundSummeryLauncher.launch(i);
-                    finish();
+                    // Do not finish() here, wait for result in woundSummeryLauncher callback
                 } catch (Exception e) {
                     e.printStackTrace();
                     finish();
@@ -146,8 +159,10 @@ public class WoundLocationActivity extends RootActivity {
         viewModel.getErrorMessage().observe(this, error -> {
             hideLoader();
             if (error != null && !error.isEmpty()) {
-                finish();
                 Log.e("WoundLocationUpdate", "Error: " + error);
+                Toast.makeText(this, "Failed to save wound information. Please try again.", Toast.LENGTH_SHORT).show();
+                // Optionally finish if the error is terminal
+                // finish(); 
             }
         });
 

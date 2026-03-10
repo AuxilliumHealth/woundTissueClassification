@@ -214,6 +214,7 @@ public class ImagePreviewActivity extends RootActivity {
         btnLasso.setOnClickListener(v -> {
             int currentItem = viewPager.getCurrentItem();
             Intent intent = new Intent(ImagePreviewActivity.this, LassoActivity.class);
+            intent.putExtra("whereFrom", "Calibration");
             intent.putExtra("imagePath", filePaths.get(currentItem));
             intent.putExtra("primaryColor", primaryColor);
             intent.putExtra("position", currentItem);
@@ -351,6 +352,7 @@ public class ImagePreviewActivity extends RootActivity {
             mIntent.putExtra("token", token);
             mIntent.putExtra("primaryColor", primaryColor);
             mIntent.putExtra("woundLocationRequired", woundLocationRequired);
+            mIntent.putExtra("woundScoreRequired", woundScoreRequired);
             startActivity(mIntent);
             finish();
             dialog.dismiss();

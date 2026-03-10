@@ -8,6 +8,7 @@ import com.auxilliumhealth.woundtissueclassification.Model.SubmitAnswersRequest;
 import com.auxilliumhealth.woundtissueclassification.Model.WoundDetailsModel;
 import com.auxilliumhealth.woundtissueclassification.Model.WoundListModel;
 import com.auxilliumhealth.woundtissueclassification.Model.WoundLocationRequest;
+import com.auxilliumhealth.woundtissueclassification.Model.EditWoundMeasurementsRequest;
 import com.auxilliumhealth.woundtissueclassification.Network.ApiClient;
 import com.auxilliumhealth.woundtissueclassification.Network.ApiService;
 import com.auxilliumhealth.woundtissueclassification.Utils.Constants;
@@ -16,6 +17,8 @@ import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -71,7 +74,7 @@ public class Repository {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(Constants.API_FAILURE + " " + t.toString());
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
             }
         });
     }
@@ -138,7 +141,7 @@ public class Repository {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(Constants.API_FAILURE + " " + t.toString());
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
             }
         });
     }
@@ -208,7 +211,7 @@ public class Repository {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(Constants.API_FAILURE + " " + t.toString());
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
             }
         });
     }
@@ -277,7 +280,7 @@ public class Repository {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(Constants.API_FAILURE + " " + t.toString());
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
             }
         });
     }
@@ -314,7 +317,7 @@ public class Repository {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(Constants.API_FAILURE + " " + t.toString());
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
             }
         });
     }
@@ -351,7 +354,7 @@ public class Repository {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(Constants.API_FAILURE + " " + t.toString());
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
             }
         });
     }
@@ -388,10 +391,92 @@ public class Repository {
 
             @Override
             public void onFailure(Call<ResponseBody> call, Throwable t) {
-                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(Constants.API_FAILURE + " " + t.toString());
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
             }
         });
     }
+
+    /**
+     * PUT /v1/data/editWoundMeasurements   (multipart/form-data)
+     *
+     * @param request     Request object containing userId, sessionId and measurements
+     * @param imagePath   absolute path to the clockwise-axis image, or null if none
+     * @param token       Bearer token
+     * @param callback    result callback
+     */
+    public void editWoundMeasurements(
+            EditWoundMeasurementsRequest request,
+            String imagePath,
+            String token,
+            GetCommonAPIDataSuccessCallBack callback) {
+
+        this.getCommonAPIDataSuccessCallBack = callback;
+
+        MediaType text = MediaType.parse("text/plain");
+
+        String userId = request.getUserId();
+        String sessionId = request.getSessionId();
+        Double woundArea = request.getWoundArea();
+        Double woundLength = request.getWoundLength();
+        Double woundWidth = request.getWoundWidth();
+        Double woundDepth = request.getWoundDepth();
+
+        Map<String, RequestBody> parts = new HashMap<>();
+        parts.put("userId",    RequestBody.create(text, userId    != null ? userId    : ""));
+        parts.put("sessionId", RequestBody.create(text, sessionId != null ? sessionId : ""));
+        
+        // For optional numeric fields: send "null" string so the server knows to skip them
+        parts.put("WoundArea",   RequestBody.create(text, woundArea   != null ? String.format("%.6f", woundArea)   : "null"));
+        parts.put("WoundLength", RequestBody.create(text, woundLength != null ? String.format("%.6f", woundLength) : "null"));
+        parts.put("WoundWidth",  RequestBody.create(text, woundWidth  != null ? String.format("%.6f", woundWidth)  : "null"));
+        parts.put("WoundDepth",  RequestBody.create(text, woundDepth  != null ? String.format("%.6f", woundDepth)  : "null"));
+
+        // Optional file part — null is fine; Retrofit omits null @Part values in multipart
+        MultipartBody.Part filePart = null;
+        if (imagePath != null) {
+            File imgFile = new File(imagePath);
+            if (imgFile.exists()) {
+                RequestBody fileBody = RequestBody.create(
+                        MediaType.parse("image/jpeg"), imgFile);
+                filePart = MultipartBody.Part.createFormData("file", imgFile.getName(), fileBody);
+            }
+        }
+
+        Retrofit retrofit = ApiClient.getInstance(false, token);
+        ApiService apiService = retrofit.create(ApiService.class);
+
+        Call<ResponseBody> call = apiService.editWoundMeasurements(parts, filePart);
+
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (response.isSuccessful()) {
+                    getCommonAPIDataSuccessCallBack.getCommonAPIDataSuccess(response.body());
+                } else {
+                    ResponseBody errorBody = response.errorBody();
+                    String message = "";
+                    try {
+                        Gson gson = new Gson();
+                        ErrorResponseModel errorResponse = gson.fromJson(
+                                errorBody != null ? errorBody.string() : "", ErrorResponseModel.class);
+                        if (errorResponse != null && errorResponse.getError() != null) {
+                            message = errorResponse.getError();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(message);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(
+                        String.format("%s %s", Constants.API_FAILURE, t.toString()));
+            }
+        });
+    }
+
 
     public interface GetCommonAPIDataSuccessCallBack {
         void getCommonAPIDataSuccess(ResponseBody models);

@@ -110,7 +110,7 @@ public class LatestWoundListActivity extends RootActivity {
             binding.shimmerContainer.setVisibility(View.GONE);
             if(message != null){
                     if(message.equals("Invalid or non-existent token")) {
-                        Toast.makeText(this, "Check your token validity or try again later", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Session expired. Please log in again.", Toast.LENGTH_SHORT).show();
                     }else{
                         Toast.makeText(this, "Something went wrong", Toast.LENGTH_SHORT).show();
 

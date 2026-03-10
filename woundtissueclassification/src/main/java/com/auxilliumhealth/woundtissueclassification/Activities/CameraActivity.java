@@ -15,7 +15,9 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
+
 import androidx.exifinterface.media.ExifInterface;
+
 import android.media.MediaActionSound;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,8 +30,10 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -57,7 +61,9 @@ import com.auxilliumhealth.woundtissueclassification.Model.S3UploadResultModel;
 import com.auxilliumhealth.woundtissueclassification.R;
 import com.auxilliumhealth.woundtissueclassification.Repository.Repository;
 import com.auxilliumhealth.woundtissueclassification.Utils.CameraPermissionHelper;
+import com.auxilliumhealth.woundtissueclassification.Utils.CameraGridOverlay;
 import com.auxilliumhealth.woundtissueclassification.Utils.FocusCircle;
+
 import com.auxilliumhealth.woundtissueclassification.Utils.GyroscopeChecker;
 import com.auxilliumhealth.woundtissueclassification.ViewModel.CameraViewModel;
 import com.bumptech.glide.Glide;
@@ -99,19 +105,19 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private MaterialTextView permissionTextView;
     private MaterialButton permissionButton;
     private FocusCircle focusIndicator;
+    private CameraGridOverlay cameraGrid;
 
     private ProcessCameraProvider cameraProvider;
     private Camera camera;
     private ImageCapture imageCapture;
     private int currentFlashMode = ImageCapture.FLASH_MODE_ON;
-
     private Repository repository;
     private MediaActionSound mediaActionSound;
     private GyroscopeChecker gyroscopeChecker;
     private View[] segments;
-
     private boolean isImaging = false;
     private boolean isFlat = false;
+    private float capturedAzimuth = 0f;
     private Float focalLength;
     private String whereFrom, woundId, sessionId, userId, coinType, token, primaryColor, woundLocation;
     private boolean woundScoreRequired = true;
@@ -123,21 +129,16 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private AlertDialog uploadProgressDialog;
     private ProgressBar uploadProgressBar;
     private MaterialTextView uploadStatusText;
-
-    ActivityResultLauncher<Intent> cameraLauncher =
-            registerForActivityResult(
-                    new ActivityResultContracts.StartActivityForResult(),
-                    result -> {
-                        if (result.getResultCode() == RESULT_OK) {
-                            Intent resultIntent = new Intent();
-                            resultIntent.putExtra("woundId", woundId);
-                            resultIntent.putExtra("sessionId", sessionId);
-                            resultIntent.putExtra("userId", userId);
-                            setResult(RESULT_OK, resultIntent);
-                            finish();
-                        }
-                    }
-            );
+    ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (result.getResultCode() == RESULT_OK) {
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("woundId", woundId);
+            resultIntent.putExtra("sessionId", sessionId);
+            resultIntent.putExtra("userId", userId);
+            setResult(RESULT_OK, resultIntent);
+            finish();
+        }
+    });
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -161,6 +162,13 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (helpButton != null) {
             helpButton.setOnClickListener(v -> startActivity(new Intent(CameraActivity.this, VideoActivity.class)));
         }
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                finish();
+            }
+        });
     }
 
     private void initView() {
@@ -179,7 +187,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         primaryColor = getIntent().getStringExtra("primaryColor");
 //        Toast.makeText(this, ""+woundId, Toast.LENGTH_SHORT).show();
 
-        Log.d(TAG, "sessionId: " + sessionId + " userId: " + userId + " woundId: " + woundId + " token: " + token);
+        Log.d(TAG, "sessionId: " + sessionId + " userId: " + userId + " woundId: " + woundId + " token: " + token+" coinType: "+coinType+"woundScoreRequired: "+woundScoreRequired+" woundLocationRequired: "+woundLocationRequired+" woundLocation: "+woundLocation+" primaryColor: "+primaryColor);
 
         previewView = findViewById(R.id.previewView);
         permissionTextView = findViewById(R.id.permissionTextView);
@@ -191,6 +199,8 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         backButton = findViewById(R.id.backButton);
         flashButton = findViewById(R.id.flash_button);
         focusIndicator = findViewById(R.id.focusIndicator);
+        cameraGrid = findViewById(R.id.cameraGrid);
+
         captureImg = findViewById(R.id.capture_img);
 
         if (captureImg != null && primaryColor != null) {
@@ -256,20 +266,14 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     }
 
     private void initGyroscope() {
-        if (whereFrom == null) {
-            isFlat = true;
-            return;
+        gyroscopeChecker = new GyroscopeChecker(this, this);
+        if (gyroscopeChecker.isGyroscopeAvailable()) {
+            gyroscopeChecker.startListening();
+        } else {
+            Log.d(TAG, "Gyroscope not available");
         }
 
-        if ("calibrate".equals(whereFrom)) {
-            gyroscopeChecker = new GyroscopeChecker(this, this);
-            if (gyroscopeChecker.isGyroscopeAvailable()) {
-                gyroscopeChecker.startListening();
-            } else {
-                Log.d(TAG, "Gyroscope not available");
-                isFlat = true;
-            }
-        } else {
+        if (!"calibrate".equals(whereFrom)) {
             isFlat = true;
         }
     }
@@ -298,30 +302,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
         if (backButton != null) {
             backButton.setOnClickListener(v -> {
-                if (whereFrom != null && whereFrom.equals("calibrate")) {
-                    Toast.makeText(this, "calibrate", Toast.LENGTH_SHORT).show();
-                    Intent i = new Intent(CameraActivity.this, CalibrationActivity.class);
-                    i.putExtra("whereFrom", "calibrate");
-                    i.putExtra("userId", userId);
-                    i.putExtra("woundScoreRequired", woundScoreRequired);
-                    i.putExtra("woundLocationRequired", woundLocationRequired);
-                    i.putExtra("token", token);
-                    i.putExtra("primaryColor", primaryColor);
-                    startActivity(i);
-                    finish();
-                } else {
-                    Intent i = new Intent(CameraActivity.this, WoundLocationActivity.class);
-                    i.putExtra("whereFrom", "calibrate");
-                    i.putExtra("userId", userId);
-                    i.putExtra("token", token);
-                    i.putExtra("woundId", woundId);
-                    i.putExtra("woundLocation", woundLocation);
-                    i.putExtra("woundScoreRequired", woundScoreRequired);
-                    i.putExtra("woundLocationRequired", woundLocationRequired);
-                    i.putExtra("primaryColor", primaryColor);
-                    startActivity(i);
-                    finish();
-                }
+                finish();
             });
         }
     }
@@ -357,7 +338,12 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             captureImg.setVisibility(View.VISIBLE);
             progressContainer.setVisibility(View.VISIBLE);
             helpButton.setVisibility(View.VISIBLE);
+            if (cameraGrid != null) {
+                cameraGrid.setVisibility(View.VISIBLE);
+            }
+
             if (!isFocusDistanceSupported && warningText != null) {
+
                 String warningMessage = "Your device does not support focus distance detection. Please capture images at different distances.";
                 warningText.setText(warningMessage);
                 warningText.setVisibility(View.VISIBLE);
@@ -371,7 +357,11 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             boolean hasFocusData = isNotEmpty(min) && isNotEmpty(max);
             imageCaptureText.setVisibility(hasFocusData ? View.VISIBLE : View.GONE);
             captureImg.setVisibility(hasFocusData ? View.VISIBLE : View.GONE);
+            if (cameraGrid != null) {
+                cameraGrid.setVisibility(View.VISIBLE);
+            }
         }
+
     }
 
     private void checkFocusDistanceSupport() {
@@ -516,23 +506,66 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             try {
                 View previewView = getLayoutInflater().inflate(R.layout.image_preview_dialog, null);
                 ImageView previewImage = previewView.findViewById(R.id.previewImage);
-                MaterialButton retakeButton = previewView.findViewById(R.id.retakeButton);
+                MaterialButton retakeButton  = previewView.findViewById(R.id.retakeButton);
                 MaterialButton confirmButton = previewView.findViewById(R.id.confirmButton);
-                if (primaryColor != null) {
-                    retakeButton.setBackgroundColor(Color.parseColor(primaryColor));
-                    confirmButton.setBackgroundColor(Color.parseColor(primaryColor));
+                com.google.android.material.textview.MaterialTextView tipText =
+                        previewView.findViewById(R.id.previewTipText);
+                com.google.android.material.textview.MaterialTextView badgeText =
+                        previewView.findViewById(R.id.previewBadgeText);
+
+                // Calibration = coin photo; otherwise wound photo
+                boolean isCalibration = "calibrate".equals(whereFrom);
+                if (tipText != null) {
+                    tipText.setText(isCalibration
+                            ? "Make sure the coin is fully visible and in focus."
+                            : "Make sure the wound is fully visible and in focus.");
                 }
-                Glide.with(this).load(imageFile).into(previewImage);
+                if (badgeText != null) {
+                    badgeText.setText(isCalibration ? "🪙 Calibration Photo" : "🩹 Wound Photo");
+                }
+
+                // Apply brand colour only to the filled Confirm button
+                if (primaryColor != null) {
+                    try {
+                        int color = Color.parseColor(primaryColor);
+                        confirmButton.setBackgroundColor(color);
+                        // Retake is outline-styled — tint its stroke and text
+                        retakeButton.setStrokeColor(
+                                android.content.res.ColorStateList.valueOf(color));
+                        retakeButton.setTextColor(color);
+                    } catch (Exception ignored) {}
+                }
+
+                // Fast, display-sized decode — fitCenter keeps full image visible
+                Glide.with(this)
+                        .load(imageFile)
+                        .override(900, 900)
+                        .fitCenter()
+                        .into(previewImage);
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setView(previewView);
                 AlertDialog dialog = builder.create();
                 dialog.setCanceledOnTouchOutside(false);
+
+                // Transparent background so the XML card's rounded corners show
                 if (dialog.getWindow() != null) {
                     dialog.getWindow().setBackgroundDrawable(new ColorDrawable(0));
                 }
 
                 dialog.show();
+
+                // Full-width dialog with comfortable side margins
+                if (dialog.getWindow() != null) {
+                    int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                    dialog.getWindow().setLayout(
+                            (int) (screenWidth * 0.92f),
+                            android.view.WindowManager.LayoutParams.WRAP_CONTENT);
+                }
+
+                // Smooth fade-in
+                previewView.setAlpha(0f);
+                previewView.animate().alpha(1f).setDuration(220).start();
 
                 retakeButton.setOnClickListener(v -> {
                     dialog.dismiss();
@@ -554,6 +587,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             }
         });
     }
+
 
     private void handleImageConfirmed(File photoFile) {
         if (photoFile == null) {
@@ -577,7 +611,9 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             return;
         }
 
-        runOnUiThread(() -> {
+        // Heavy bitmap work (decode + rotate + scale) runs on a background thread
+        // so the UI is never blocked and the preview dialog appears without delay.
+        cameraExecutor.execute(() -> {
             try {
                 File correctedFile = correctImageOrientationAndAspect(photoFile);
                 if (correctedFile == null) {
@@ -585,21 +621,32 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                     return;
                 }
 
-                filePaths.add(correctedFile.getAbsolutePath());
-                if (focalLength != null) {
-                    lensFocusDistances.add(focalLength);
-                }
-
-                if ("calibrate".equals(whereFrom)) {
-                    updateProgressBar(filePaths.size());
-                    if (filePaths.size() < CALIBRATION_IMAGE_COUNT) {
-                        showImagePreview(correctedFile);
-                    } else {
-                        navigateToImagePreview();
+                runOnUiThread(() -> {
+                    if (isDestroyed() || isFinishing()) {
+                        isCapturing.set(false);
+                        return;
                     }
-                } else {
-                    showImagePreview(correctedFile);
-                }
+                    try {
+                        filePaths.add(correctedFile.getAbsolutePath());
+                        if (focalLength != null) {
+                            lensFocusDistances.add(focalLength);
+                        }
+
+                        if ("calibrate".equals(whereFrom)) {
+                            updateProgressBar(filePaths.size());
+                            if (filePaths.size() < CALIBRATION_IMAGE_COUNT) {
+                                showImagePreview(correctedFile);
+                            } else {
+                                navigateToImagePreview();
+                            }
+                        } else {
+                            showImagePreview(correctedFile);
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error updating UI after image save", e);
+                        isCapturing.set(false);
+                    }
+                });
             } catch (Exception e) {
                 Log.e(TAG, "Error handling saved image", e);
                 isCapturing.set(false);
@@ -708,7 +755,8 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                     if (!isImaging) {
                         isImaging = true;
                         if (isFlat) {
-                            warningText.setVisibility(View.GONE);
+                            warningText.setVisibility(View.INVISIBLE);
+
                             captureButton.setImageResource(R.drawable.green_camera_icon);
                         }
                     }
@@ -763,6 +811,11 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (photoFile == null) {
             isCapturing.set(false);
             return;
+        }
+
+        if (gyroscopeChecker != null) {
+            capturedAzimuth = gyroscopeChecker.getCurrentAzimuthDegrees();
+            Log.d(TAG, "Capture time rotation (Azimuth/Compass degree): " + capturedAzimuth + "°");
         }
 
         playShutterSound();
@@ -947,15 +1000,17 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
                 Intent intent = new Intent(CameraActivity.this, SymptomQuestionActivity.class);
                 intent.putExtra("imageUrl", result.getImageUrl());
-                intent.putExtra("lensFocusDistance", lensFocusDistances.isEmpty() ? "0" : String.valueOf(lensFocusDistances.get(0)) );
+                intent.putExtra("lensFocusDistance", lensFocusDistances.isEmpty() ? "0" : String.valueOf(lensFocusDistances.get(0)));
                 intent.putExtra("woundId", woundId);
                 intent.putExtra("primaryColor", primaryColor);
                 intent.putExtra("sessionId", sessionId);
                 intent.putExtra("userId", userId);
                 intent.putExtra("token", token);
+                intent.putExtra("woundLocation", woundLocation);
                 intent.putExtra("coinType", coinType);
                 intent.putExtra("woundScoreRequired", woundScoreRequired);
                 intent.putExtra("whereFrom", whereFrom);
+                intent.putExtra("imageRotationDeg", String.valueOf(capturedAzimuth));
                 cameraLauncher.launch(intent);
                 finish();
             } catch (Exception e) {
@@ -989,27 +1044,36 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     }
 
     private void handleUploadFailure(String message) {
-        runOnUiThread(() -> showToast(message));
-        if (!isDestroyed()) {
-            showToast("Upload failed");
-        }
+        runOnUiThread(() -> showToast("Upload failed. Please check your connection and try again."));
         Log.e(TAG, "Upload failed: " + message);
     }
 
     @Override
     public void onFlatStatusChanged(boolean isFlat) {
+        if (!"calibrate".equals(whereFrom)) {
+            this.isFlat = true;
+            return;
+        }
+        
         this.isFlat = isFlat;
         if (isDestroyed() || warningText == null || captureButton == null) return;
 
         runOnUiThread(() -> {
             if (isImaging && isFlat) {
                 captureButton.setImageResource(R.drawable.green_camera_icon);
-                warningText.setVisibility(View.GONE);
+                warningText.setVisibility(View.INVISIBLE);
+
             } else {
                 captureButton.setImageResource(R.drawable.camera_icon);
                 warningText.setVisibility(View.VISIBLE);
             }
         });
+    }
+
+    @Override
+    public void onAngleChanged(float azimuth) {
+
+
     }
 
     private void showToast(String message) {
@@ -1065,8 +1129,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             return;
         }
 
-        // Ensure PreviewView maintains original size
-        previewView.setScaleType(PreviewView.ScaleType.FIT_CENTER);
+        // Metering point for camera focus
 
         // Create metering point for camera focus
         MeteringPointFactory factory = new SurfaceOrientedMeteringPointFactory(previewView.getWidth(), previewView.getHeight());
@@ -1140,6 +1203,8 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             gyroscopeChecker.stopListening();
         }
     }
+
+
 
     private boolean isNotEmpty(String str) {
         return str != null && !str.isEmpty();

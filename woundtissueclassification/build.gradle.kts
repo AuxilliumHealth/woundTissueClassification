@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.constraintlayout)
 
     // TensorFlow Lite
+    implementation(libs.tensorflow.lite)
     implementation(libs.tensorflow.lite.support)
     implementation(libs.tensorflow.lite.metadata)
 
@@ -81,6 +82,9 @@ dependencies {
     implementation("com.facebook.shimmer:shimmer:0.5.0")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.airbnb.android:lottie:6.6.9")
+    implementation("com.github.chrisbanes:PhotoView:2.3.0")
+
+
 
     // Testing
     testImplementation(libs.junit)

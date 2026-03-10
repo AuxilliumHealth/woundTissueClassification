@@ -70,6 +70,12 @@ public class LoadingDialog extends Dialog {
         }
     }
 
+    public void updateTitle(String newTitle) {
+        if (tvTitle != null && isShowing()) {
+            tvTitle.setText(newTitle);
+        }
+    }
+
     @Override
     public void dismiss() {
         try {

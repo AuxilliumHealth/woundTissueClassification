@@ -1,42 +1,174 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Beautiful image-preview bottom-sheet style dialog.
+    Root has a transparent background so the dialog window
+    background (set to transparent in code) shows corners cleanly.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/dialog_box_background"
     android:orientation="vertical"
+    android:background="@drawable/dialog_box_background"
+    android:elevation="16dp">
 
-    android:padding="16dp">
+    <!-- ── Header bar ───────────────────────────────────────────── -->
+    <LinearLayout
+        android:id="@+id/previewHeader"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="16dp"
+        android:background="#F8F9FA"
+        android:orientation="horizontal">
 
-    <ImageView
-        android:id="@+id/previewImage"
+        <!-- Drag handle / icon -->
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_menu_camera"
+            android:alpha="0.7"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Preview" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Preview Photo"
+            android:textColor="#1A1A2E"
+            android:textSize="17sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.01" />
+
+        <!-- "Use photo" badge text -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/headerHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Review before confirming"
+            android:textColor="#9E9E9E"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- thin divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0" />
+
+    <!-- ── Image card ────────────────────────────────────────────── -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:adjustViewBounds="true" />
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp">
 
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="6dp"
+            app:cardBackgroundColor="#000000">
+
+            <ImageView
+                android:id="@+id/previewImage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxHeight="420dp"
+                android:scaleType="fitCenter"
+                android:adjustViewBounds="true"
+                android:contentDescription="Captured wound image" />
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Semi-transparent quality badge at bottom-right of image -->
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="8dp"
+            android:background="#99000000"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:text="🩹 Wound Photo"
+            android:id="@+id/previewBadgeText"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium" />
+    </FrameLayout>
+
+    <!-- ── Tip text ──────────────────────────────────────────────── -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/previewTipText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp"
+        android:text="Make sure the wound is fully visible and in focus."
+        android:textColor="#757575"
+        android:textSize="12sp"
+        android:gravity="center" />
+
+    <!-- thin divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#EEEEEE"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp" />
+
+    <!-- ── Action buttons ────────────────────────────────────────── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="20dp"
+        android:gravity="center">
 
+        <!-- Retake — outlined style -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/retakeButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:textColor="@color/white"
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:text="Retake" />
+            android:layout_marginEnd="8dp"
+            android:text="Retake"
+            android:textColor="#E53935"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.02"
+            app:strokeColor="#E53935"
+            app:strokeWidth="1.5dp"
+            app:cornerRadius="12dp" />
 
+        <!-- Confirm — filled style -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/confirmButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textColor="@color/white"
-
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:text="Confirm" />
+            android:layout_marginStart="8dp"
+            android:text="✓  Use Photo"
+            android:textColor="@color/white"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.02"
+            app:cornerRadius="12dp"
+            app:elevation="4dp" />
+
     </LinearLayout>
+
 </LinearLayout>

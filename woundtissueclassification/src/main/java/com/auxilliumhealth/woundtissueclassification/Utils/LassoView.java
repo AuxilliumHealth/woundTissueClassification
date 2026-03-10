@@ -39,7 +39,7 @@ public class LassoView extends View {
         return new RectF(imageBounds); // Return a copy for safety
     }
 
-    private void calculateImageBounds() {
+    public void calculateImageBounds() {
         if (imageView == null || imageView.getDrawable() == null) return;
 
         // Get the image matrix
@@ -138,6 +138,7 @@ public class LassoView extends View {
                     pathList.clear(); // Only one path allowed
                     pathList.add(currentPath);
                     currentPath = null;
+                    notifyListener();
                 }
                 break;
         }
@@ -146,10 +147,27 @@ public class LassoView extends View {
         return true;
     }
 
+    public interface OnPathChangedListener {
+        void onPathChanged(boolean hasPath);
+    }
+
+    private OnPathChangedListener listener;
+
+    public void setOnPathChangedListener(OnPathChangedListener listener) {
+        this.listener = listener;
+    }
+
+    private void notifyListener() {
+        if (listener != null) {
+            listener.onPathChanged(!pathList.isEmpty());
+        }
+    }
+
     public void undo() {
         if (!pathList.isEmpty()) {
             pathList.clear();
             invalidate();
+            notifyListener();
         }
     }
 
@@ -157,6 +175,7 @@ public class LassoView extends View {
         pathList.clear();
         currentPath = null;
         invalidate();
+        notifyListener();
     }
 
     public List<Path> getAllPaths() {

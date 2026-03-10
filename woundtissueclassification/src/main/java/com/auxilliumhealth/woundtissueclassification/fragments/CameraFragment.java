@@ -123,6 +123,7 @@ public class CameraFragment extends Fragment implements GyroscopeChecker.OnFlatS
 
     private boolean isImaging = false;
     private boolean isFlat = false;
+    private float capturedAzimuth = 0f;
     private Float focalLength;
     private String whereFrom, woundId, sessionId, userId, coinType, token, primaryColor;
     private boolean appResumed = false;
@@ -305,20 +306,14 @@ public class CameraFragment extends Fragment implements GyroscopeChecker.OnFlatS
     }
 
     private void initGyroscope() {
-        if (whereFrom == null) {
-            isFlat = true;
-            return;
+        gyroscopeChecker = new GyroscopeChecker(requireContext(), this);
+        if (gyroscopeChecker.isGyroscopeAvailable()) {
+            gyroscopeChecker.startListening();
+        } else {
+            Log.d(TAG, "Gyroscope not available");
         }
 
-        if ("calibrate".equals(whereFrom)) {
-            gyroscopeChecker = new GyroscopeChecker(requireContext(), this);
-            if (gyroscopeChecker != null && gyroscopeChecker.isGyroscopeAvailable()) {
-                gyroscopeChecker.startListening();
-            } else {
-                Log.d(TAG, "Gyroscope not available");
-                isFlat = true;
-            }
-        } else {
+        if (!"calibrate".equals(whereFrom)) {
             isFlat = true;
         }
     }
@@ -843,6 +838,11 @@ public class CameraFragment extends Fragment implements GyroscopeChecker.OnFlatS
             return;
         }
 
+        if (gyroscopeChecker != null) {
+            capturedAzimuth = gyroscopeChecker.getCurrentAzimuthDegrees();
+            Log.d(TAG, "Capture time rotation (Azimuth/Compass degree): " + capturedAzimuth + "°");
+        }
+
         playShutterSound();
 
         ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
@@ -994,6 +994,7 @@ public class CameraFragment extends Fragment implements GyroscopeChecker.OnFlatS
                 intent.putExtra("token", token);
                 intent.putExtra("coinType", coinType);
                 intent.putExtra("whereFrom", whereFrom);
+                intent.putExtra("imageRotationDeg", String.valueOf(capturedAzimuth));
                 startActivityForResult(intent, REQUEST_CODE_SYMPTOM_ACTIVITY);
             } catch (Exception e) {
                 Log.e(TAG, "Upload processing failed", e);
@@ -1025,16 +1026,18 @@ public class CameraFragment extends Fragment implements GyroscopeChecker.OnFlatS
             if (progressDialog != null && progressDialog.isShowing()) {
                 progressDialog.dismiss();
             }
-            showToast(message);
+            showToast("Upload failed. Please check your connection and try again.");
         });
-        if (isAdded()) {
-            showToast("Upload failed");
-        }
         Log.e(TAG, "Upload failed: " + message);
     }
 
     @Override
     public void onFlatStatusChanged(boolean isFlat) {
+        if (!"calibrate".equals(whereFrom)) {
+            this.isFlat = true;
+            return;
+        }
+        
         this.isFlat = isFlat;
         if (!isAdded() || warningText == null || captureButton == null) return;
 
@@ -1047,6 +1050,11 @@ public class CameraFragment extends Fragment implements GyroscopeChecker.OnFlatS
                 warningText.setVisibility(View.VISIBLE);
             }
         });
+    }
+
+    @Override
+    public void onAngleChanged(float azimuth) {
+
     }
 
     private void showToast(String message) {

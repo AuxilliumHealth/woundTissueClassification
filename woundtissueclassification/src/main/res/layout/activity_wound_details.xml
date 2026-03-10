@@ -29,28 +29,20 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 android:background="@color/Theme"
+                app:navigationIcon="@drawable/arrow_left_icon"
+                app:navigationIconTint="@color/white"
                 app:layout_scrollFlags="scroll|enterAlways">
 
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Analysis Result"
+                    android:textColor="@color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
 
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_centerInParent="true"
-
-                        android:gravity="center"
-                        android:text="Ai Result"
-                        android:textAlignment="center"
-                        android:textColor="@color/white"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
-
-
-                </RelativeLayout>
             </com.google.android.material.appbar.MaterialToolbar>
+
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -258,38 +250,52 @@
                                         android:id="@+id/wound_score_card"
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
-                                        app:strokeWidth="0dp"
-                                        app:cardCornerRadius="@dimen/_10dp"
-                                        app:cardElevation="1dp"
-                                        android:layout_margin="@dimen/_10dp"
-                                        app:cardBackgroundColor="@color/white">
+                                        android:layout_margin="12dp"
+                                        app:cardCornerRadius="16dp"
+                                        app:cardElevation="2dp"
+                                        app:strokeWidth="0dp">
 
-                                        <RelativeLayout
-                                            android:layout_width="wrap_content"
+                                        <LinearLayout
+                                            android:layout_width="match_parent"
                                             android:layout_height="wrap_content"
-                                            android:layout_margin="@dimen/_20dp">
+                                            android:gravity="center_vertical"
+                                            android:orientation="horizontal"
+                                            android:padding="16dp">
+
+                                            <View
+                                                android:id="@+id/risk_status_indicator"
+                                                android:layout_width="4dp"
+                                                android:layout_height="24dp"
+                                                android:background="@color/Theme" />
+
                                             <com.google.android.material.textview.MaterialTextView
                                                 android:id="@+id/risk_level_textview"
-                                                android:layout_width="wrap_content"
+                                                android:layout_width="0dp"
                                                 android:layout_height="wrap_content"
-                                                android:text="Risk Level"
-                                                android:layout_alignParentStart="true"
+                                                android:layout_marginStart="12dp"
+                                                android:layout_weight="1"
+                                                android:text="Wound Severity Score"
                                                 android:textColor="@color/gray_800"
-                                                android:textSize="@dimen/text_large"
-                                                android:textStyle="bold"/>
+                                                android:textSize="16sp"
+                                                android:textStyle="bold" />
+
                                             <com.google.android.material.textview.MaterialTextView
                                                 android:id="@+id/risk_level_value_textview"
                                                 android:layout_width="wrap_content"
                                                 android:layout_height="wrap_content"
-                                                android:layout_alignParentEnd="true"
-                                                android:text="Green"
+                                                android:background="@drawable/dialog_rounded_background"
+                                                android:backgroundTint="#f1f5f9"
+                                                android:paddingHorizontal="12dp"
+                                                android:paddingVertical="6dp"
+                                                android:text="Evaluating..."
                                                 android:textColor="@color/gray_800"
-                                                android:textSize="@dimen/text_large"
-                                                android:textStyle="bold"/>
+                                                android:textSize="14sp"
+                                                android:textStyle="bold" />
 
-                                        </RelativeLayout>
+                                        </LinearLayout>
 
                                     </com.google.android.material.card.MaterialCardView>
+
                                 </LinearLayout>
                             </com.google.android.material.card.MaterialCardView>
                             <LinearLayout
@@ -315,11 +321,13 @@
                                         <com.google.android.material.textview.MaterialTextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text="Processed Images"
-                                            android:textColor="@color/gray_800"
-                                            android:textSize="@dimen/text_large"
                                             android:layout_margin="@dimen/_10dp"
-                                            android:textStyle="bold"/>
+                                            android:paddingTop="8dp"
+                                            android:text="Analysis Layers"
+                                            android:textColor="@color/black"
+                                            android:textSize="18sp"
+                                            android:textStyle="bold" />
+
 
                                         <androidx.recyclerview.widget.RecyclerView
                                             android:id="@+id/processed_Image_recyclerview"
@@ -822,133 +830,219 @@
                                         </LinearLayout>
                                     </com.google.android.material.card.MaterialCardView>
                                 </RelativeLayout>
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/wound_area_linear_layout"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="@dimen/_10dp"
+                                app:cardBackgroundColor="@color/white"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="2dp"
+                                app:strokeWidth="0dp">
 
-                                <com.google.android.material.card.MaterialCardView
-                                    android:id="@+id/wound_area_linear_layout"
+                                <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    app:strokeWidth="0dp"
-                                    app:cardCornerRadius="@dimen/_10dp"
-                                    app:cardElevation="1dp"
-                                    android:layout_margin="@dimen/_10dp"
-                                    app:cardBackgroundColor="@color/white">
+                                    android:orientation="vertical"
+                                    android:padding="16dp">
+
+                                    <com.google.android.material.textview.MaterialTextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginBottom="16dp"
+                                        android:text="Wound Dimensions"
+                                        android:textColor="@color/black"
+                                        android:textSize="18sp"
+                                        android:textStyle="bold" />
+
                                     <LinearLayout
                                         android:layout_width="match_parent"
                                         android:layout_height="wrap_content"
+                                        android:baselineAligned="false"
+                                        android:orientation="horizontal">
 
-                                        android:orientation="vertical"
-                                        android:visibility="visible">
+                                        <!-- Image Section -->
+                                        <com.google.android.material.card.MaterialCardView
+                                            android:id="@+id/wound_measurement_axis_card"
+                                            android:layout_width="0dp"
+                                            android:layout_height="180dp"
+                                            android:layout_weight="1"
+                                            app:cardCornerRadius="12dp"
+                                            app:cardElevation="0dp"
+                                            app:cardBackgroundColor="@color/white"
+                                            app:strokeColor="#f1f5f9"
+                                            app:strokeWidth="1dp">
 
-                                        <com.google.android.material.textview.MaterialTextView
-                                            android:layout_width="wrap_content"
-                                            android:layout_height="wrap_content"
-                                            android:layout_marginStart="@dimen/_20dp"
-                                            android:text="Wound Measurement"
-                                            android:layout_margin="@dimen/_10dp"
-                                            android:textColor="@color/black"
-                                            android:textSize="@dimen/text_large"
-                                            android:textStyle="bold" />
+                                            <ImageView
+                                                android:id="@+id/wound_measurement_axis_img"
+                                                android:layout_width="match_parent"
+                                                android:layout_height="match_parent"
+                                                android:scaleType="fitCenter"
+                                                android:src="@drawable/image_placeholder" />
+
+                                        </com.google.android.material.card.MaterialCardView>
 
 
+                                        <!-- Stats Section -->
                                         <LinearLayout
-
-                                            android:layout_width="match_parent"
+                                            android:layout_width="0dp"
                                             android:layout_height="wrap_content"
-                                            android:layout_margin="@dimen/_10dp"
+                                            android:layout_marginStart="16dp"
+                                            android:layout_weight="1"
                                             android:orientation="vertical">
 
+                                            <!-- Area Stat -->
                                             <LinearLayout
                                                 android:layout_width="match_parent"
                                                 android:layout_height="wrap_content"
-                                                android:layout_gravity="center_horizontal"
-                                                android:weightSum="2"
-                                                android:orientation="horizontal">
+                                                android:layout_marginBottom="12dp"
+                                                android:orientation="vertical">
 
-                                                <com.google.android.material.textview.MaterialTextView
-                                                    android:layout_width="wrap_content"
+                                                <LinearLayout
+                                                    android:layout_width="match_parent"
                                                     android:layout_height="wrap_content"
-                                                    android:layout_marginStart="@dimen/_20dp"
-                                                    android:text="Area "
-                                                    android:layout_weight="1"
-                                                    android:textAlignment="textStart"
-                                                    android:textColor="@color/black"
-                                                    android:textSize="@dimen/large_medium_text_size" />
+                                                    android:gravity="center_vertical"
+                                                    android:orientation="horizontal">
 
-                                                <com.google.android.material.textview.MaterialTextView
+
+                                                    <TextView
+                                                        android:layout_width="wrap_content"
+                                                        android:layout_height="wrap_content"
+                                                        
+                                                        android:text="Wound Area"
+                                                        android:textColor="@color/gray_600"
+                                                        android:textSize="12sp" />
+                                                </LinearLayout>
+
+                                                <TextView
                                                     android:id="@+id/wound_area_txt"
                                                     android:layout_width="wrap_content"
                                                     android:layout_height="wrap_content"
-                                                    android:layout_marginStart="@dimen/_5dp"
-                                                    android:text=""
-                                                    android:layout_weight="1"
-                                                    android:textAlignment="textEnd"
-                                                    android:layout_marginEnd="@dimen/_20dp"
+                                                    android:layout_marginTop="2dp"
+                                                    android:text="0.00 cm²"
                                                     android:textColor="@color/Theme"
-                                                    android:textSize="@dimen/large_medium_text_size" />
+                                                    android:textSize="20sp"
+                                                    android:textStyle="bold" />
                                             </LinearLayout>
 
+                                            <!-- Width Stat -->
                                             <LinearLayout
                                                 android:layout_width="match_parent"
                                                 android:layout_height="wrap_content"
-                                                android:layout_gravity="center_horizontal"
-                                                android:orientation="horizontal"
-                                                android:weightSum="2">
+                                                android:layout_marginBottom="12dp"
+                                                android:orientation="vertical">
 
-                                                <com.google.android.material.textview.MaterialTextView
-                                                    android:layout_width="wrap_content"
+                                                <LinearLayout
+                                                    android:layout_width="match_parent"
                                                     android:layout_height="wrap_content"
-                                                    android:layout_marginStart="@dimen/_20dp"
-                                                    android:text="Width "
-                                                    android:layout_weight="1"
-                                                    android:textAlignment="textStart"
-                                                    android:textColor="@color/black"
-                                                    android:textSize="@dimen/large_medium_text_size" />
+                                                    android:gravity="center_vertical"
+                                                    android:orientation="horizontal">
 
-                                                <com.google.android.material.textview.MaterialTextView
+
+                                                    <TextView
+                                                        android:layout_width="wrap_content"
+                                                        android:layout_height="wrap_content"
+                                                        
+                                                        android:text="Wound Width"
+                                                        android:textColor="@color/gray_600"
+                                                        android:textSize="12sp" />
+                                                </LinearLayout>
+
+                                                <TextView
                                                     android:id="@+id/wound_width_txt"
                                                     android:layout_width="wrap_content"
                                                     android:layout_height="wrap_content"
-                                                    android:layout_marginStart="@dimen/_5dp"
-                                                    android:layout_marginEnd="@dimen/_20dp"
-                                                    android:layout_weight="1"
-                                                    android:text=""
-                                                    android:textAlignment="textEnd"
-                                                    android:textColor="@color/Theme"
-                                                    android:textSize="@dimen/large_medium_text_size" />
+                                                    android:layout_marginTop="2dp"
+                                                    android:text="0.00 cm"
+                                                    android:textColor="@color/black"
+                                                    android:textSize="16sp"
+                                                    android:textStyle="bold" />
                                             </LinearLayout>
 
+                                            <!-- Length Stat -->
                                             <LinearLayout
                                                 android:layout_width="match_parent"
                                                 android:layout_height="wrap_content"
-                                                android:layout_gravity="center_horizontal"
-                                                android:orientation="horizontal"
-                                                android:weightSum="2">
+                                                android:orientation="vertical">
 
-                                                <com.google.android.material.textview.MaterialTextView
-                                                    android:layout_width="wrap_content"
+                                                <LinearLayout
+                                                    android:layout_width="match_parent"
                                                     android:layout_height="wrap_content"
-                                                    android:layout_marginStart="@dimen/_20dp"
-                                                    android:layout_weight="1"
-                                                    android:text="Length "
-                                                    android:textAlignment="textStart"
-                                                    android:textColor="@color/black"
-                                                    android:textSize="@dimen/large_medium_text_size" />
+                                                    android:gravity="center_vertical"
+                                                    android:orientation="horizontal">
 
-                                                <com.google.android.material.textview.MaterialTextView
+
+                                                    <TextView
+                                                        android:layout_width="wrap_content"
+                                                        android:layout_height="wrap_content"
+                                                        android:text="Wound Length"
+                                                        android:textColor="@color/gray_600"
+                                                        android:textSize="12sp" />
+                                                </LinearLayout>
+
+                                                <TextView
                                                     android:id="@+id/wound_length_txt"
                                                     android:layout_width="wrap_content"
                                                     android:layout_height="wrap_content"
-                                                    android:layout_marginStart="@dimen/_5dp"
-                                                    android:layout_marginEnd="@dimen/_10dp"
-                                                    android:layout_weight="1"
-                                                    android:text=""
-                                                    android:textAlignment="textEnd"
-                                                    android:textColor="@color/Theme"
-                                                    android:textSize="@dimen/large_medium_text_size" />
+                                                    android:layout_marginTop="2dp"
+                                                    android:text="0.00 cm"
+                                                    android:textColor="@color/black"
+                                                    android:textSize="16sp"
+                                                    android:textStyle="bold" />
                                             </LinearLayout>
+
+                                            <!-- Depth Stat -->
+                                            <LinearLayout
+                                                android:layout_width="match_parent"
+                                                android:layout_height="wrap_content"
+                                                android:layout_marginTop="12dp"
+                                                android:orientation="vertical">
+
+                                                <LinearLayout
+                                                    android:layout_width="match_parent"
+                                                    android:layout_height="wrap_content"
+                                                    android:gravity="center_vertical"
+                                                    android:orientation="horizontal">
+
+                                                    <TextView
+                                                        android:layout_width="wrap_content"
+                                                        android:layout_height="wrap_content"
+                                                        
+                                                        android:text="Wound Depth"
+                                                        android:textColor="@color/gray_600"
+                                                        android:textSize="12sp" />
+                                                </LinearLayout>
+
+                                                <TextView
+                                                    android:id="@+id/wound_depth_txt"
+                                                    android:layout_width="wrap_content"
+                                                    android:layout_height="wrap_content"
+                                                    android:layout_marginTop="2dp"
+                                                    android:text="0.00 cm"
+                                                    android:textColor="@color/black"
+                                                    android:textSize="16sp"
+                                                    android:textStyle="bold" />
+                                            </LinearLayout>
+
                                         </LinearLayout>
+
                                     </LinearLayout>
-                                </com.google.android.material.card.MaterialCardView>
+
+                                    <com.google.android.material.textview.MaterialTextView
+                                        android:id="@+id/measurement_disclaimer_txt"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginTop="8dp"
+                                        android:text="* Yellow line represents the maximum length.\n* Green line represents the maximum width."
+
+                                        android:textColor="@color/gray_600"
+                                        android:textSize="10sp"
+                                        android:visibility="gone" />
+                                </LinearLayout>
+
+                            </com.google.android.material.card.MaterialCardView>
+
+
                                 <LinearLayout
                                     android:id="@+id/llPoweredBy"
                                     android:layout_width="match_parent"

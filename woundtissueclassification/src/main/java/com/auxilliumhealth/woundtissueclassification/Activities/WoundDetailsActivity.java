@@ -64,7 +64,10 @@ public class WoundDetailsActivity extends RootActivity {
          primaryColor = getIntent().getStringExtra("primaryColor");
          token = getIntent().getStringExtra("token");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
+            android.view.Window window = getWindow();
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.setStatusBarColor(Color.parseColor(primaryColor));
         }
         binding.resultMaterialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
         binding.resultAppBarLayout.setBackgroundColor(Color.parseColor(primaryColor));

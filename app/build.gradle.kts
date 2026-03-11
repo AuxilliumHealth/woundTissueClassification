@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
 
@@ -15,6 +17,19 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Handle secrets from local.properties
+        val properties = Properties()
+        val propertiesFile = rootProject.file("local.properties")
+        if (propertiesFile.exists()) {
+            properties.load(propertiesFile.inputStream())
+        }
+        val sdkToken = properties.getProperty("sdk.token") ?: ""
+        buildConfigField("String", "SDK_TOKEN", "\"$sdkToken\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {
@@ -34,7 +49,7 @@ android {
 
     ndkVersion = "27.1.12297006" // r27b — check your SDK Manager for installed version
 
-    packagingOptions {
+    packaging {
         jniLibs {
             useLegacyPackaging = false
         }

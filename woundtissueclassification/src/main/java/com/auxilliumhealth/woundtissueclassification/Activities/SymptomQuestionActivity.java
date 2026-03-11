@@ -212,9 +212,15 @@ public class SymptomQuestionActivity extends RootActivity {
         try {
             binding.btnPrev.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
             binding.btnPrev.setTextColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
-            binding.btnNext.setBackgroundColor((Color.parseColor(primaryColor)));
+            binding.btnNext.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
             binding.btnNext.setTextColor(ColorStateList.valueOf(Color.WHITE));
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                android.view.Window window = getWindow();
+                window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+                window.setStatusBarColor(Color.parseColor(primaryColor));
+            }
             binding.materialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
             binding.appBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
 
@@ -864,7 +870,12 @@ public class SymptomQuestionActivity extends RootActivity {
             binding.modelResultLayout.setVisibility(View.VISIBLE);
             binding.resultMaterialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
             binding.resultAppBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
-            binding.btnFinish.setBackgroundColor(Color.parseColor(primaryColor));
+            binding.btnFinish.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
+            binding.btnEditMarkings.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
+            binding.measurementsEditBtn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
+            binding.btnMarkReprocess.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
+            binding.btnMarkReprocess.setTextColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
+            binding.btnMarkReprocess.setIconTint(ColorStateList.valueOf(Color.parseColor(primaryColor)));
 
             if (result != null && result.getAiModelData() != null) {
                 binding.noWoundDetectedLayout.setVisibility(View.GONE);
@@ -1216,6 +1227,15 @@ public class SymptomQuestionActivity extends RootActivity {
         com.google.android.material.button.MaterialButton btnCancel = bottomSheetView.findViewById(R.id.btn_cancel);
         com.google.android.material.button.MaterialButton btnSave = bottomSheetView.findViewById(R.id.btn_save);
 
+        if (primaryColor != null) {
+            try {
+                int c = Color.parseColor(primaryColor);
+                btnSave.setBackgroundTintList(ColorStateList.valueOf(c));
+                btnCancel.setStrokeColor(ColorStateList.valueOf(c));
+                btnCancel.setTextColor(ColorStateList.valueOf(c));
+            } catch (Exception ignored) {}
+        }
+
         // Pre-fill
         editArea.setText(binding.woundAreaTxt.getText().toString().replace(" cm²", "").replace("-", "").trim());
         editWidth.setText(binding.woundWidthTxt.getText().toString().replace(" cm", "").replace("-", "").trim());
@@ -1282,7 +1302,7 @@ public class SymptomQuestionActivity extends RootActivity {
             binding.modelResultLayout.setVisibility(View.VISIBLE);
             binding.noWoundDetectedLayout.setVisibility(View.VISIBLE);
             binding.woundDetectedLayoutLayout.setVisibility(View.GONE);
-            binding.btnRecapture.setBackgroundColor(Color.parseColor(primaryColor));
+            binding.btnRecapture.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
             binding.btnSkip.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
             binding.btnSkip.setTextColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
             binding.btnSkip.setStrokeWidth(2);

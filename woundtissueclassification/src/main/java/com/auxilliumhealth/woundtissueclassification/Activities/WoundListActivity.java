@@ -47,7 +47,10 @@ public class WoundListActivity extends RootActivity {
         binding.appBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
         binding.materialToolbar.setBackgroundColor(Color.parseColor(primaryColor));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
+            android.view.Window window = getWindow();
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.setStatusBarColor(Color.parseColor(primaryColor));
         }
 
         setupRecyclerView();

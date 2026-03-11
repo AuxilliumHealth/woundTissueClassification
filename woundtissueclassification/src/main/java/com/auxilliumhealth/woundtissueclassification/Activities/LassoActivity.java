@@ -1,6 +1,7 @@
 package com.auxilliumhealth.woundtissueclassification.Activities;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -91,7 +92,7 @@ public class LassoActivity extends AppCompatActivity {
                 materialToolbar.setBackgroundColor(color);
                 appBarLayout.setBackgroundColor(color);
                 saveButton.setRippleColorResource(android.R.color.white);
-                saveButton.setBackgroundColor(color);
+                saveButton.setBackgroundTintList(ColorStateList.valueOf(color));
             } catch (IllegalArgumentException e) {
                 Log.e("LassoActivity", "Invalid primary color: " + primaryColor);
             }

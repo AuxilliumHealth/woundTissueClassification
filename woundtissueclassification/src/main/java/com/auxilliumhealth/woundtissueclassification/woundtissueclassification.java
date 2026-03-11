@@ -41,15 +41,10 @@ public class woundtissueclassification {
 
             Intent intent;
 
-            if (hasFocusData ) {
-                    intent = new Intent(context, WoundLocationActivity.class);
-
-            } else {
-                if(calibrationRequired){
+            if (calibrationRequired) {
                 intent = new Intent(context, CalibrationActivity.class);
-                }else{
-                  intent = new Intent(context, WoundLocationActivity.class);
-                }
+            } else {
+                intent = new Intent(context, WoundLocationActivity.class);
             }
 
             // Pass extras

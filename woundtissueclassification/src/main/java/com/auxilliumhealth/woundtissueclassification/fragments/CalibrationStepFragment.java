@@ -1,6 +1,7 @@
 package com.auxilliumhealth.woundtissueclassification.fragments;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -332,7 +333,7 @@ public class CalibrationStepFragment extends Fragment {
                 viewPager.setCurrentItem(viewPager.getCurrentItem() + 1);
             }
         });
-        binding2.nextBtn.setBackgroundColor(Color.parseColor(primaryColor));
+        binding2.nextBtn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         binding2.helpTxt.setOnClickListener(v -> startActivity(new Intent(getActivity(), VideoActivity.class)));
     }
 
@@ -347,7 +348,7 @@ public class CalibrationStepFragment extends Fragment {
                 viewPager.setCurrentItem(viewPager.getCurrentItem() + 1);
             }
         });
-        binding3.nextBtn.setBackgroundColor(Color.parseColor(primaryColor));
+        binding3.nextBtn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         binding3.helpTxt.setOnClickListener(v -> startActivity(new Intent(getActivity(), VideoActivity.class)));
     }
 
@@ -359,7 +360,7 @@ public class CalibrationStepFragment extends Fragment {
                 selectedCoinPosition = position;
             }
         });
-        binding4.nextBtn.setBackgroundColor(Color.parseColor(primaryColor));
+        binding4.nextBtn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
 
         binding4.nextBtn.setOnClickListener(v -> {
             Intent i = new Intent(getActivity(), CameraActivity.class);

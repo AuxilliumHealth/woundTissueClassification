@@ -34,13 +34,13 @@ public class MainActivity extends AppCompatActivity {
         previewButton.setOnClickListener(v -> launchPreviewWithCallback());
 
         //reset calibration
-        woundtissueclassification.resetCalibration(this);
+//        woundtissueclassification.resetCalibration(this);
     }
 
     private void launchPreviewWithCallback() {
         woundtissueclassification.launchPreviewWoundList(this, "user_id", // userId (Mandatory)
                 "wound_id",//woundId  (Mandatory)
-                "token", // https://console.woundtele.com (Mandatory)
+                BuildConfig.SDK_TOKEN, // Protected token from local.properties
                 "#2CA6CC"); //primaryColor (Mandatory)
     }
 
@@ -48,9 +48,9 @@ public class MainActivity extends AppCompatActivity {
         woundtissueclassification.woundtissueclassificationWithLauncher(woundTissueLauncher, this,
                 "user_id", // userId
                 "wound_id", // woundId (optional)
-                "token", // https://console.woundtele.com
+                BuildConfig.SDK_TOKEN, // Protected token from local.properties
                 "#2CA6CC", // primary color
-                false, //riskScore isRequired
+                true, //riskScore isRequired
                 false, //body selection isRequired
                 true //calibration isRequired
         );

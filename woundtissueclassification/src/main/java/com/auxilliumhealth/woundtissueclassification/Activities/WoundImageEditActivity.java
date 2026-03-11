@@ -2,6 +2,7 @@ package com.auxilliumhealth.woundtissueclassification.Activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -9,6 +10,7 @@ import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -139,9 +141,15 @@ public class WoundImageEditActivity extends AppCompatActivity {
             try {
                 int c = Color.parseColor(primaryColor);
                 toolbar.setBackgroundColor(c);
-                saveBtn.setBackgroundColor(c);
-                undoBtn.setBackgroundColor(c);
-                getWindow().setStatusBarColor(c);
+                saveBtn.setBackgroundTintList(ColorStateList.valueOf(c));
+                undoBtn.setBackgroundTintList(ColorStateList.valueOf(c));
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    android.view.Window window = getWindow();
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+                    window.setStatusBarColor(c);
+                }
             } catch (Exception ignored) {
             }
         }

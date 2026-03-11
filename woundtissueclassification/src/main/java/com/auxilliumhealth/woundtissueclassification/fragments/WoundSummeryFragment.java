@@ -4,6 +4,7 @@ import static android.app.Activity.RESULT_CANCELED;
 import static android.app.Activity.RESULT_OK;
 
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -149,7 +150,7 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
             color = Color.parseColor("#007AFF");
         }
         binding.summeryTxt.setTextColor(color);
-        binding.saveBtn.setBackgroundColor(color);
+        binding.saveBtn.setBackgroundTintList(ColorStateList.valueOf(color));
 
         // Set body position image and text
         if (frontBackBody != null) {

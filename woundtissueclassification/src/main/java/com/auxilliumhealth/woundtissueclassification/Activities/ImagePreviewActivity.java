@@ -72,7 +72,10 @@ public class ImagePreviewActivity extends RootActivity {
 
         // Java
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
+            android.view.Window window = getWindow();
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.setStatusBarColor(Color.parseColor(primaryColor));
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -92,7 +95,7 @@ public class ImagePreviewActivity extends RootActivity {
         appBarLayout.setBackgroundColor(Color.parseColor(primaryColor));
         viewPager.setSwipeEnabled(true);
         coinType = getIntent().getStringExtra("coinType");
-        btnNext.setBackgroundColor(Color.parseColor(primaryColor));
+        btnNext.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         btnLasso.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         btnLasso.setTextColor(Color.parseColor(primaryColor));
         btnLasso.setIconTint(ColorStateList.valueOf(Color.parseColor(primaryColor)));
@@ -335,7 +338,7 @@ public class ImagePreviewActivity extends RootActivity {
 
         MaterialButton oldBtn = dialog.findViewById(R.id.old_btn);
         MaterialButton newBtn = dialog.findViewById(R.id.new_btn);
-        newBtn.setBackgroundColor(Color.parseColor(primaryColor));
+        newBtn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         newBtn.setTextColor(Color.WHITE);
         oldBtn.setTextColor(Color.parseColor(primaryColor));
         oldBtn.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
@@ -368,7 +371,7 @@ public class ImagePreviewActivity extends RootActivity {
 
         MaterialButton oldBtn = dialog.findViewById(R.id.old_btn);
         MaterialButton newBtn = dialog.findViewById(R.id.new_btn);
-        newBtn.setBackgroundColor(Color.parseColor(primaryColor));
+        newBtn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
         newBtn.setTextColor(Color.WHITE);
         oldBtn.setTextColor(Color.parseColor(primaryColor));
         oldBtn.setStrokeColor(ColorStateList.valueOf(Color.parseColor(primaryColor)));
@@ -384,6 +387,7 @@ public class ImagePreviewActivity extends RootActivity {
             i.putExtra("token", token);
             i.putExtra("primaryColor", primaryColor);
             i.putExtra("woundLocationRequired", woundLocationRequired);
+            i.putExtra("woundScoreRequired", woundScoreRequired);
             startActivity(i);
             finish();
             dialog.dismiss();
@@ -396,6 +400,8 @@ public class ImagePreviewActivity extends RootActivity {
             i.putExtra("userId", userId);
             i.putExtra("token", token);
             i.putExtra("primaryColor", primaryColor);
+            i.putExtra("woundScoreRequired", woundScoreRequired);
+            i.putExtra("woundLocationRequired", woundLocationRequired);
             startActivity(i);
             finish();
             dialog.dismiss();

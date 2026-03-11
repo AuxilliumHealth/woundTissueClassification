@@ -2,6 +2,7 @@ package com.auxilliumhealth.woundtissueclassification.Activities;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -62,12 +63,18 @@ public class WoundLocationActivity extends RootActivity {
          woundLocationRequired = getIntent().getBooleanExtra("woundLocationRequired", true);
 
         woundLocation = getIntent().getStringExtra("woundLocation");
+        primaryColor = getIntent().getStringExtra("primaryColor");
         if (primaryColor == null || primaryColor.isEmpty()) {
             primaryColor = "#007AFF"; // Keep as string for parsing later
         }
 
         try {
-            getWindow().setStatusBarColor(Color.parseColor(primaryColor));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                android.view.Window window = getWindow();
+                window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+                window.setStatusBarColor(Color.parseColor(primaryColor));
+            }
         } catch (Exception e) {
             Log.e(TAG, "Error setting status bar color", e);
             // Fallback to a safe color if primaryColor is invalid

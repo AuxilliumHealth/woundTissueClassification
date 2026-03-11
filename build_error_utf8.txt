@@ -1,0 +1,61 @@
+﻿> Task :woundtissueclassification:preBuild UP-TO-DATE
+> Task :woundtissueclassification:preDebugBuild UP-TO-DATE
+> Task :woundtissueclassification:mergeDebugJniLibFolders UP-TO-DATE
+> Task :woundtissueclassification:mergeDebugNativeLibs NO-SOURCE
+> Task :woundtissueclassification:stripDebugDebugSymbols NO-SOURCE
+> Task :woundtissueclassification:copyDebugJniLibsProjectAndLocalJars UP-TO-DATE
+> Task :woundtissueclassification:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :woundtissueclassification:generateDebugResValues UP-TO-DATE
+> Task :woundtissueclassification:generateDebugResources UP-TO-DATE
+> Task :woundtissueclassification:packageDebugResources UP-TO-DATE
+> Task :woundtissueclassification:parseDebugLocalResources UP-TO-DATE
+> Task :woundtissueclassification:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :woundtissueclassification:mergeDebugMlModels UP-TO-DATE
+> Task :woundtissueclassification:generateDebugMlModelClass UP-TO-DATE
+> Task :woundtissueclassification:generateDebugRFile UP-TO-DATE
+> Task :woundtissueclassification:compileDebugKotlin NO-SOURCE
+> Task :woundtissueclassification:extractDebugAnnotations
+> Task :woundtissueclassification:extractDeepLinksForAarDebug UP-TO-DATE
+> Task :woundtissueclassification:mergeDebugShaders UP-TO-DATE
+> Task :woundtissueclassification:compileDebugShaders NO-SOURCE
+> Task :woundtissueclassification:generateDebugAssets UP-TO-DATE
+> Task :woundtissueclassification:mergeDebugAssets UP-TO-DATE
+> Task :woundtissueclassification:javaPreCompileDebug UP-TO-DATE
+
+> Task :woundtissueclassification:compileDebugJavaWithJavac
+.\gradlew : Note: Some input files use or override a deprecated API.
+At line:1 char:1
++ .\gradlew :woundtissueclassification:assembleDebug --console=plain >  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Note: Some inpu...deprecated API.:String)  
+   [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Note: Recompile with -Xlint:deprecation for details.
+Note: C:\Users\adiuv\OneDrive\Documents\aravindhan\android project\imaging\woundtissuecl
+assification\src\main\java\com\auxilliumhealth\woundtissueclassification\Activities\Imag
+ePreviewActivity.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :woundtissueclassification:mergeDebugGeneratedProguardFiles
+> Task :woundtissueclassification:mergeDebugConsumerProguardFiles
+> Task :woundtissueclassification:prepareDebugArtProfile
+> Task :woundtissueclassification:prepareLintJarForPublish
+> Task :woundtissueclassification:processDebugManifest UP-TO-DATE
+> Task :woundtissueclassification:processDebugJavaRes NO-SOURCE
+> Task :woundtissueclassification:writeDebugAarMetadata UP-TO-DATE
+> Task :woundtissueclassification:mergeDebugJavaResource
+> Task :woundtissueclassification:syncDebugLibJars
+> Task :woundtissueclassification:bundleDebugAar
+> Task :woundtissueclassification:assembleDebug
+
+[Incubating] Problems report is available at: file:///C:/Users/adiuv/OneDrive/Documents/aravindhan/android%20project/imaging/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 7s
+26 actionable tasks: 9 executed, 17 up-to-date

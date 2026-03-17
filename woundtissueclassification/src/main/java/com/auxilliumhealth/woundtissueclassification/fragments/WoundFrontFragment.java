@@ -37,8 +37,14 @@ public class WoundFrontFragment extends Fragment implements View.OnClickListener
             upperLowerbody = args.getString("upperLowerbody");
             frontBackBody = args.getString("frontBackBody");
             userId = args.getString("userId");
+            if (userId == null) userId = args.getString("patientId");
+            if (userId == null) userId = args.getString("user_id");
+
             token = args.getString("token");
+
             woundId = args.getString("woundId");
+            if (woundId == null) woundId = args.getString("wound_id");
+
             woundScoreRequired = args.getBoolean("woundScoreRequired");
             primaryColor = args.getString("primaryColor");
 

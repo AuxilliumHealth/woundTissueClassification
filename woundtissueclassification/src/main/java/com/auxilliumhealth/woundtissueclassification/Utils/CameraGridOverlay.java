@@ -21,11 +21,17 @@ public class CameraGridOverlay extends View {
         init();
     }
 
+    private int plusColor = Color.WHITE;
+
     private void init() {
-        paint.setColor(Color.WHITE);
         paint.setStrokeWidth(1.5f);
         paint.setAlpha(100); // Semi-transparent
         paint.setStyle(Paint.Style.STROKE);
+    }
+
+    public void setPlusColor(int color) {
+        this.plusColor = color;
+        invalidate(); // Redraw with the new color
     }
 
     @Override
@@ -34,20 +40,22 @@ public class CameraGridOverlay extends View {
         int width = getWidth();
         int height = getHeight();
 
-        // Vertical lines
-        canvas.drawLine(width / 3.0f, 0, width / 3.0f, height, paint);
-        canvas.drawLine(2 * width / 3.0f, 0, 2 * width / 3.0f, height, paint);
+        // 1. Setup Paint for the "Plus" Point
+        paint.setColor(plusColor);
+        paint.setStrokeWidth(8.0f); // Thicker stroke for better visibility
+        paint.setAlpha(255); // Full opacity for primary color
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeCap(Paint.Cap.ROUND); // Smooth rounded ends for a premium feel
 
-        // Horizontal lines
-        canvas.drawLine(0, height / 3.0f, width, height / 3.0f, paint);
-        canvas.drawLine(0, 2 * height / 3.0f, width, 2 * height / 3.0f, paint);
-
-        // Center crosshair
         float centerX = width / 2.0f;
         float centerY = height / 2.0f;
-        float crossLength = 30.0f;
-        canvas.drawLine(centerX - crossLength, centerY, centerX + crossLength, centerY, paint);
-        canvas.drawLine(centerX, centerY - crossLength, centerX, centerY + crossLength, paint);
+        float plusSize = 35.0f; // Size of the plus arms
+
+        // 2. Draw the "Plus" (+) only
+        // Horizontal Line
+        canvas.drawLine(centerX - plusSize, centerY, centerX + plusSize, centerY, paint);
+        // Vertical Line
+        canvas.drawLine(centerX, centerY - plusSize, centerX, centerY + plusSize, paint);
     }
 }
 

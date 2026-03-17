@@ -3,13 +3,13 @@ package com.auxilliumhealth.woundtissueclassification.Model;
 import com.google.gson.annotations.SerializedName;
 
 public class WoundLocationRequest {
-    @SerializedName("userId")
+    @SerializedName(value = "userId", alternate = {"user_id", "patientId"})
     private String userId;
 
     @SerializedName("description")
     private String description;
 
-    @SerializedName("woundId")
+    @SerializedName(value = "woundId", alternate = {"wound_id"})
     private String woundId;
 
     @SerializedName("woundLocation")

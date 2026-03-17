@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/dialog_rounded_background"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="#DBDBDB" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Before you capture"
+        android:textColor="#333333"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="Follow these tips for the most accurate assessment."
+        android:textColor="#888888"
+        android:textSize="14sp" />
+
+    <!-- Tip 1: Tap to focus -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/tip_item_background"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        <ImageView
+            android:id="@+id/tipIcon1"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_tap_focus" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap to focus"
+                android:textColor="#333333"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tap the wound once on your screen to make the image sharp"
+                android:textColor="#888888"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/check1"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/correct_icon"
+            app:tint="#006699" />
+    </LinearLayout>
+
+    <!-- Tip 2: Straight angle -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/tip_item_background"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        <ImageView
+            android:id="@+id/tipIcon2"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/straight_angle_icon" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Straight angle"
+                android:textColor="#333333"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Hold the camera parallel to the wound."
+                android:textColor="#888888"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/check2"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/correct_icon"
+            app:tint="#006699" />
+    </LinearLayout>
+
+    <!-- Tip 3: Close framing -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/tip_item_background"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        <ImageView
+            android:id="@+id/tipIcon3"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_close_framing" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Close framing"
+                android:textColor="#333333"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Keep the wound clearly within the frame."
+                android:textColor="#888888"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/check3"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/correct_icon"
+            app:tint="#006699" />
+    </LinearLayout>
+
+    <!-- Tip 4: Good lighting -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/tip_item_background"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        <ImageView
+            android:id="@+id/tipIcon4"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_good_lighting" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Good lighting"
+                android:textColor="#333333"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Avoid shadows or overlay bright glare."
+                android:textColor="#888888"
+                android:textSize="12sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/check4"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/correct_icon"
+            app:tint="#006699" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/startCaptureBtn"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="32dp"
+        android:text="Start Capture"
+        android:textColor="@color/white"
+        android:textAllCaps="false"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:cornerRadius="8dp" />
+
+</LinearLayout>

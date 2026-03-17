@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 public class SubmitAnswersRequest {
-    @SerializedName("userId")
+    @SerializedName(value = "userId", alternate = {"user_id", "patientId"})
     private String userId;
 
     @SerializedName("sessionId")

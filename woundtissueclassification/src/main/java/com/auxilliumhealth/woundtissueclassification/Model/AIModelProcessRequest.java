@@ -5,7 +5,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 public class AIModelProcessRequest {
-    @SerializedName("userId")
+    @SerializedName(value = "userId", alternate = {"user_id", "patientId"})
     private String userId;
 
     @SerializedName("img_Path")
@@ -14,7 +14,7 @@ public class AIModelProcessRequest {
     @SerializedName("sessionId")
     private String sessionId;
 
-    @SerializedName("woundId")
+    @SerializedName(value = "woundId", alternate = {"wound_id", "woundID"})
     private String woundId;
 
     @SerializedName("lens_focal_distance")
@@ -30,15 +30,26 @@ public class AIModelProcessRequest {
     private List<Double> lassoCoordinates;
 
 
+    @SerializedName("left_image")
+    private String leftImage;
+
+    @SerializedName("right_image")
+    private String rightImage;
+
+    @SerializedName("baseline_cm")
+    private double baselineCm;
     @SerializedName("body_part")
     private String bodyPart;
     @SerializedName("image_rotation_deg")
     private String imageRotationDeg;
     @SerializedName("headDirection")
     private String headDirection;
+
     public AIModelProcessRequest(String userId, String imgPath, String sessionId, String woundId,
                                double lensFocalDistance, List<Double> pixelPerUnitCoeffs,
-                               List<Double> areaCoeffs, List<Double> lassoCoordinates, String bodyPart, String imageRotationDeg, String headDirection) {
+                               List<Double> areaCoeffs, List<Double> lassoCoordinates, String bodyPart, 
+                               String imageRotationDeg, String headDirection, String leftImage, 
+                               String rightImage, double baselineCm) {
         this.userId = userId;
         this.imgPath = imgPath;
         this.sessionId = sessionId;
@@ -50,9 +61,8 @@ public class AIModelProcessRequest {
         this.bodyPart = bodyPart;
         this.imageRotationDeg = imageRotationDeg;
         this.headDirection = headDirection;
-
-
-
-
+        this.leftImage = leftImage;
+        this.rightImage = rightImage;
+        this.baselineCm = baselineCm;
     }
 }

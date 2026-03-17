@@ -3,6 +3,7 @@ package com.auxilliumhealth.woundtissueclassification.Activities;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
@@ -66,6 +67,11 @@ import retrofit2.Response;
 import com.auxilliumhealth.woundtissueclassification.Network.ApiClient;
 import com.auxilliumhealth.woundtissueclassification.Network.ApiService;
 import com.auxilliumhealth.woundtissueclassification.Model.EditWoundMeasurementsRequest;
+import com.auxilliumhealth.woundtissueclassification.Utils.StereoCameraDetector;
+import com.auxilliumhealth.woundtissueclassification.Utils.WoundDepthProcessor;
+import android.graphics.BitmapFactory;
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
 
 public class SymptomQuestionActivity extends RootActivity {
 
@@ -103,7 +109,11 @@ public class SymptomQuestionActivity extends RootActivity {
     private double editedWidthCm   = 0;
     private double editedAreaVal   = 0;
     private double editedDepthVal  = 0;
+    private double localDepthMm    = 0;
+    private String leftFilePath    = null;
+    private String rightFilePath   = null;
     private String editedImgPath   = null;
+    private double baselineCm      = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,6 +178,11 @@ public class SymptomQuestionActivity extends RootActivity {
 
             headDirection = getIntent().getStringExtra("headDirection");
             if (headDirection == null) headDirection = "TOP"; // Default fallback
+
+            localDepthMm = getIntent().getDoubleExtra("localDepth", 0.0);
+            baselineCm = getIntent().getDoubleExtra("baselineCm", 0.0);
+            leftFilePath = getIntent().getStringExtra("leftFilePath");
+            rightFilePath = getIntent().getStringExtra("rightFilePath");
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 getWindow().setStatusBarColor(Color.parseColor(primaryColor));
@@ -281,7 +296,7 @@ public class SymptomQuestionActivity extends RootActivity {
                     }
                 }
 
-                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg);
+                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg, leftFilePath, rightFilePath, baselineCm);
             }
         } else {
             Log.w(TAG, "Missing required data for AI processing - imageUrl: " + (imageUrl != null) + ", woundId: " + (woundId != null) + ", token: " + (token != null));
@@ -709,7 +724,7 @@ public class SymptomQuestionActivity extends RootActivity {
         repository.submitAnswers(request, token);
     }
 
-    private void processAIModelImageInBackground(String userId, String sessionId, String imagePath, String woundId, double lensFocalDistance, String token, String areaCoff, String pixelPerUnit, List<Double> lassoCoordinates, String imageRotationDeg) {
+    private void processAIModelImageInBackground(String userId, String sessionId, String imagePath, String woundId, double lensFocalDistance, String token, String areaCoff, String pixelPerUnit, List<Double> lassoCoordinates, String imageRotationDeg, String leftImagePath, String rightImagePath, double baselineCmValue) {
         if (isProcessingAI.get()) {
             Log.d(TAG, "AI Model processing already in progress");
             return;
@@ -719,7 +734,9 @@ public class SymptomQuestionActivity extends RootActivity {
         Log.d(TAG, "Starting background AI image processing...");
 
         List<Double> emptyCoeffs = new ArrayList<>();
-        AIModelProcessRequest request = new AIModelProcessRequest(userId, imagePath, sessionId, woundId, lensFocalDistance, convertToDoubleList(pixelPerUnit), convertToDoubleList(areaCoff), lassoCoordinates, woundLocation, imageRotationDeg,headDirection);
+        AIModelProcessRequest request = new AIModelProcessRequest(userId, imagePath, sessionId, woundId, lensFocalDistance, 
+                convertToDoubleList(pixelPerUnit), convertToDoubleList(areaCoff), lassoCoordinates, woundLocation, 
+                imageRotationDeg, headDirection, leftImagePath, rightImagePath, baselineCmValue);
         Log.d(TAG, "headDirection: "+headDirection);
         repository.processAIModelImage(request, token, new Repository.GetCommonAPIDataSuccessCallBack() {
             @Override
@@ -1033,6 +1050,11 @@ public class SymptomQuestionActivity extends RootActivity {
             // Display wound measurements
             displayWoundMeasurements(woundAnalysis.getAiModelData());
 
+            // If we have local stereo images, we can attempt a refined depth calculation
+            if (leftFilePath != null && rightFilePath != null && (woundAnalysis.getAiModelData().getWoundDepth() == null || woundAnalysis.getAiModelData().getWoundDepth() <= 0)) {
+                refineStereoDepthLocally();
+            }
+
             // Make the wound analytics card visible
             binding.woundanalyticCard.setVisibility(View.VISIBLE);
 
@@ -1170,7 +1192,11 @@ public class SymptomQuestionActivity extends RootActivity {
                 }
                 
                 if (aiData.getWoundDepth() == null || aiData.getWoundDepth() <= 0) {
-                    binding.woundDepthTxt.setText("-");
+                    if (localDepthMm > 0) {
+                        binding.woundDepthTxt.setText(String.format("%.2f mm", localDepthMm));
+                    } else {
+                        binding.woundDepthTxt.setText("-");
+                    }
                 } else {
                     binding.woundDepthTxt.setText(String.format("%.2f mm", aiData.getWoundDepth()));
                 }
@@ -1514,7 +1540,7 @@ public class SymptomQuestionActivity extends RootActivity {
             isProcessingAI.set(false);
             isAiProcessingCompleted = false;
 
-            processAIModelImageInBackground(userId, sessionId, reprocessImageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg);
+            processAIModelImageInBackground(userId, sessionId, reprocessImageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg, leftFilePath, rightFilePath, baselineCm);
         }
     }
 
@@ -1561,6 +1587,39 @@ public class SymptomQuestionActivity extends RootActivity {
         resultIntent.putExtra("status", "cancelled");
         setResult(RESULT_CANCELED, resultIntent);
         super.onBackPressed();
+    }
+
+    private void refineStereoDepthLocally() {
+        if (leftFilePath == null || rightFilePath == null) return;
+
+        new Thread(() -> {
+            try {
+                Bitmap leftBmp = BitmapFactory.decodeFile(leftFilePath);
+                Bitmap rightBmp = BitmapFactory.decodeFile(rightFilePath);
+
+                if (leftBmp != null && rightBmp != null) {
+                    StereoCameraDetector detector = new StereoCameraDetector(this);
+                    double baseline = detector.getBaselineMm();
+                    double focalLen = detector.getFocalLengthPx(leftBmp.getWidth());
+
+                    WoundDepthProcessor depthProcessor = new WoundDepthProcessor(baseline, focalLen);
+                    
+                    // Re-calculate with local images (can add mask refinement later if we download mask)
+                    WoundDepthProcessor.DepthResult result = depthProcessor.process(leftBmp, rightBmp, null);
+
+                    Log.d(TAG, "Refined Stereo Depth: " + result.maxDepthMm + " mm");
+
+                    runOnUiThread(() -> {
+                        if (result.maxDepthMm > 0) {
+                            localDepthMm = result.maxDepthMm;
+                            binding.woundDepthTxt.setText(String.format("%.2f mm", localDepthMm));
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Refined depth calculation failed", e);
+            }
+        }).start();
     }
 
     @Override

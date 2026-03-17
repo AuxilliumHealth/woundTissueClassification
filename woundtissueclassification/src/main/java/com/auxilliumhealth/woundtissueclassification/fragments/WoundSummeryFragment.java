@@ -111,12 +111,16 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
             partSideBody = args.getString("partSideBody");
             woundScoreRequired = args.getBoolean("woundScoreRequired");
             woundId = args.getString("woundId");
+            if (woundId == null) woundId = args.getString("wound_id");
 
             if (woundId == null || woundId.isEmpty()) {
                 woundId = "1";
             }
             primaryColor = args.getString("primaryColor", "#000000");
             userId = args.getString("userId");
+            if (userId == null) userId = args.getString("patientId");
+            if (userId == null) userId = args.getString("user_id");
+
             token = args.getString("token");
 
             // Get image byte array
@@ -207,6 +211,7 @@ public class WoundSummeryFragment extends Fragment implements View.OnClickListen
             woundLocation = frontBackBody + "_" + upperLowerbody + "_" + woundPartBody + "_" + partSideBody;
 
             showLoader();
+            Log.d(TAG, "Updating location for userId=" + userId + ", woundId=" + woundId + ", location=" + woundLocation);
             updateWoundLocation(userId, woundId, description, woundLocation);
         }
     }

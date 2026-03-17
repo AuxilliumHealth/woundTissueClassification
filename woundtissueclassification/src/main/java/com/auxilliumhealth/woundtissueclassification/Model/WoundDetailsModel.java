@@ -23,10 +23,10 @@ public class WoundDetailsModel {
         @SerializedName("DateTime")
         @Expose
         private String dateTime;
-        @SerializedName("userId")
+        @SerializedName(value = "userId", alternate = {"user_id", "patientId"})
         @Expose
         private String userId;
-        @SerializedName("woundId")
+        @SerializedName(value = "woundId", alternate = {"wound_id"})
         @Expose
         private String woundId;
 

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Created by
+  ~ Sathish Kumar S
+  ~ Full Stack Engineer,
+  ~ Adiuvo Diagnostics Pvt. Ltd., Chennai
+  ~ Copyright (c) 2023.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="50dp"
+    android:height="50dp"
+    android:viewportWidth="50"
+    android:viewportHeight="50">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M35.46 9.54c1.02-1.02 1.02-2.68 0-3.7-1.03-1.02-2.68-1.01-3.7 0L16.53 21.1c-1.95 1.95-1.95 5.12 0 7.07L31.78 43.4c1.02 1.01 2.67 1.01 3.69 0 1.02-1.02 1.02-2.67 0-3.7L23.9 28.17c-1.95-1.95-1.95-5.12 0-7.07L35.46 9.54Z"/>
+</vector>

@@ -80,8 +80,10 @@ import com.auxilliumhealth.woundtissueclassification.Utils.CameraGridOverlay;
 import com.auxilliumhealth.woundtissueclassification.Utils.FocusCircle;
 
 import com.auxilliumhealth.woundtissueclassification.Utils.GyroscopeChecker;
+import com.auxilliumhealth.woundtissueclassification.Utils.WoundDepthProcessor;
 import com.auxilliumhealth.woundtissueclassification.ViewModel.CameraViewModel;
 import com.bumptech.glide.Glide;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textview.MaterialTextView;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -112,7 +114,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
     private long lastClickTime = 0;
     private ImageButton captureButton, backButton;
-    private MaterialTextView warningText, imageCaptureText;
+    private MaterialTextView imageCaptureText;
     private LinearLayout progressContainer;
     private ImageButton helpButton;
     private ImageView flashButton, captureImg;
@@ -151,10 +153,21 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private boolean hasPermission = false;
     private boolean hasRequestedPermission = false;
     private CameraViewModel viewModel;
+    private double localDepthMm = 0.0;
+    private double baselineCm = 0.0;
+    private String leftFilePath = null;
+    private String rightFilePath = null;
     private boolean isFocusDistanceSupported = true;
     private AlertDialog uploadProgressDialog;
     private ProgressBar uploadProgressBar;
     private MaterialTextView uploadStatusText;
+    
+    // Focus Status Constants
+    private static final int FOCUS_STATUS_IDEAL = 0;
+    private static final int FOCUS_STATUS_SIMILAR = 1;
+    private static final int FOCUS_STATUS_TOO_CLOSE = 2;
+    private static final int FOCUS_STATUS_TOO_FAR = 3;
+    private static final int FOCUS_STATUS_MANUAL = 4;
     ActivityResultLauncher<Intent> cameraLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() == RESULT_OK) {
             Intent resultIntent = new Intent();
@@ -181,9 +194,11 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                 isStereoModeEnabled = true;
                 logicalCameraId = detector.getLogicalCameraId();
                 physicalCameraIds = detector.getPhysicalCameraIds();
+                baselineCm = detector.getBaselineMm() / 10.0; // Convert mm to cm
+                Log.d(TAG, "Stereo Baseline (cm): " + baselineCm);
                 
                 if (cameraGrid != null) {
-                    cameraGrid.setVisibility(View.GONE);
+                    cameraGrid.setVisibility(View.VISIBLE);
                 }
                 initStereoCamera2();
             } else {
@@ -193,6 +208,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             initExposureControl();
             viewModel = new ViewModelProvider(this).get(CameraViewModel.class);
             setupObservers();
+            showCaptureTipsBottomSheet();
         } catch (Exception e) {
             Log.e(TAG, "Initialization failed", e);
             showToast("Initialization error");
@@ -213,7 +229,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
     private void initView() {
         repository = new Repository(CameraActivity.this);
-        warningText = findViewById(R.id.warningText);
 
         whereFrom = getIntent().getStringExtra("whereFrom");
         woundId = getIntent().getStringExtra("woundId");
@@ -242,8 +257,14 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
         captureImg = findViewById(R.id.capture_img);
 
-        if (captureImg != null && primaryColor != null) {
-            captureImg.setColorFilter(Color.parseColor(primaryColor));
+        if (primaryColor != null) {
+            int pColor = Color.parseColor(primaryColor);
+            if (captureImg != null) {
+                captureImg.setColorFilter(pColor);
+            }
+            if (cameraGrid != null) {
+                cameraGrid.setPlusColor(pColor);
+            }
         }
 
         // Lock PreviewView scale type to prevent resizing
@@ -358,12 +379,19 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (!isImaging && !isFlat) {
             showToast("Capture from a different distance & hold device parallel");
         } else if (!isImaging) {
-            showToast("Capture from a different distance");
+            if ("calibrate".equals(whereFrom)) {
+                showToast("Capture from a different distance");
+            } else {
+                // If not imaging, we might be too close or too far
+                showToast("Adjust distance for ideal imaging");
+            }
         } else if (!isFlat) {
             showToast("Hold device parallel while capturing");
         } else {
             captureImage();
-            updateFocusUI(true);
+            if ("calibrate".equals(whereFrom)) {
+                updateFocusUI(FOCUS_STATUS_SIMILAR);
+            }
         }
     }
 
@@ -381,21 +409,16 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                 cameraGrid.setVisibility(View.VISIBLE);
             }
 
-            if (!isFocusDistanceSupported && warningText != null) {
-
+            if (!isFocusDistanceSupported) {
                 String warningMessage = "Your device does not support focus distance detection. Please capture images at different distances.";
-                warningText.setText(warningMessage);
-                warningText.setVisibility(View.VISIBLE);
                 Log.w(TAG, warningMessage);
             }
         } else {
             progressContainer.setVisibility(View.GONE);
             helpButton.setVisibility(View.GONE);
-            String min = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MIN_FOCUS_DISTANCE);
-            String max = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MAX_FOCUS_DISTANCE);
-            boolean hasFocusData = isNotEmpty(min) && isNotEmpty(max);
-            imageCaptureText.setVisibility(hasFocusData ? View.VISIBLE : View.GONE);
-            captureImg.setVisibility(hasFocusData ? View.VISIBLE : View.GONE);
+            // Hide calibration guidance by default when not in calibration mode
+            imageCaptureText.setVisibility(View.GONE);
+            captureImg.setVisibility(View.GONE);
             if (cameraGrid != null) {
                 cameraGrid.setVisibility(View.VISIBLE);
             }
@@ -580,51 +603,69 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         if (result == null) return;
 
         Float focusDistance = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
-//        Log.d(TAG, "Focus distance: " + focusDistance);
 
         if (focusDistance == null || focusDistance == 0.0f) {
             if (!isFocusDistanceSupported) {
                 focusDistance = (float) (lensFocusDistances.size() + 1);
-//                Log.d(TAG, "Using placeholder focus distance: " + focusDistance);
             } else {
                 return;
             }
         }
 
-        if (!focusDistance.equals(focalLength)) {
+        int newStatus = getFocusStatus(focusDistance);
+        int currentStatus = (focalLength != null) ? getFocusStatus(focalLength) : -1;
+
+        if (newStatus != currentStatus || Math.abs(focusDistance - (focalLength != null ? focalLength : 0)) > 0.05f) {
             focalLength = focusDistance;
-            boolean shouldMoveAway = isFocusDistanceSimilar(focusDistance);
-            updateFocusUI(shouldMoveAway);
+            updateFocusUI(newStatus);
         }
     }
 
-    private boolean isFocusDistanceSimilar(float lensFocusDistance) {
+    private int getFocusStatus(float lensFocusDistance) {
+        if (isStereoModeEnabled) return FOCUS_STATUS_IDEAL;
+
         if (!isFocusDistanceSupported) {
-            return lensFocusDistances.size() >= CALIBRATION_IMAGE_COUNT;
+            if ("calibrate".equals(whereFrom)) {
+                return (lensFocusDistances.size() >= CALIBRATION_IMAGE_COUNT) ? FOCUS_STATUS_IDEAL : FOCUS_STATUS_SIMILAR;
+            } else {
+                return FOCUS_STATUS_MANUAL;
+            }
         }
 
         if (lensFocusDistances.contains(lensFocusDistance) || lensFocusDistance < 1.0f) {
-            return true;
+            if (!"calibrate".equals(whereFrom)) {
+                // For wound imaging, duplicate distances or anything > 1m is generally fine 
+                // as long as it's not explicitly too close/far based on calibration.
+                // We let the range check later handle the specific bounds.
+            } else {
+                return FOCUS_STATUS_SIMILAR;
+            }
         }
 
         if ("calibrate".equals(whereFrom)) {
-            return !isExistingValueInArray(lensFocusDistance);
+            return !isExistingValueInArray(lensFocusDistance) ? FOCUS_STATUS_SIMILAR : FOCUS_STATUS_IDEAL;
         }
 
         String min = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MIN_FOCUS_DISTANCE);
         String max = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_MAX_FOCUS_DISTANCE);
 
         if (!isNotEmpty(min) || !isNotEmpty(max)) {
-            return false;
+            return FOCUS_STATUS_IDEAL;
         }
 
         try {
             float minFloat = Float.parseFloat(min);
             float maxFloat = Float.parseFloat(max);
-            return !(lensFocusDistance >= minFloat && lensFocusDistance <= maxFloat);
+            
+            if (lensFocusDistance > maxFloat) {
+                return FOCUS_STATUS_TOO_CLOSE;
+            } else if (lensFocusDistance < minFloat) {
+                return FOCUS_STATUS_TOO_FAR;
+            }
+            return FOCUS_STATUS_IDEAL;
         } catch (NumberFormatException e) {
             Log.e(TAG, "Error parsing focus distances", e);
-            return false;
+            return FOCUS_STATUS_IDEAL;
         }
     }
 
@@ -857,43 +898,61 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         return Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true);
     }
 
-    private void updateFocusUI(boolean shouldMoveAway) {
-        if (isDestroyed() || imageCaptureText == null || captureImg == null || warningText == null || captureButton == null) {
+    private void updateFocusUI(int focusStatus) {
+        if (isDestroyed() || imageCaptureText == null || captureImg == null || captureButton == null) {
             return;
+        }
+
+        // Broaden capture availability: SIMILAR is acceptable for wound imaging
+        final boolean canImageAnyway = (focusStatus == FOCUS_STATUS_MANUAL);
+        final boolean isWoundMode = !"calibrate".equals(whereFrom);
+        final boolean newIsImaging = (focusStatus == FOCUS_STATUS_IDEAL || 
+                                    (isWoundMode && focusStatus == FOCUS_STATUS_SIMILAR) || 
+                                    canImageAnyway);
+        
+        if (this.isImaging != newIsImaging) {
+            this.isImaging = newIsImaging;
+            updateCaptureButtonReadyState();
         }
 
         uiHandler.post(() -> {
             if (isDestroyed()) return;
 
             try {
-                if (shouldMoveAway) {
+                if (focusStatus != FOCUS_STATUS_IDEAL) {
                     imageCaptureText.setVisibility(View.VISIBLE);
-                    imageCaptureText.setText(isFocusDistanceSupported ? "Move to different distance" : "Capture image at a different distance manually (e.g., 10 cm, 20 cm)");
-                    captureImg.setVisibility(View.VISIBLE);
-                    Glide.with(this).load(R.drawable.move_arrow).into(captureImg);
-
-                    if (isImaging) {
-                        isImaging = false;
-                        captureButton.setImageResource(R.drawable.camera_icon);
-                        warningText.setVisibility(View.VISIBLE);
+                    
+                    String message;
+                    if (focusStatus == FOCUS_STATUS_TOO_CLOSE) {
+                        message = getString(R.string.move_away);
+                    } else if (focusStatus == FOCUS_STATUS_TOO_FAR) {
+                        message = getString(R.string.move_closer);
+                    } else if (focusStatus == FOCUS_STATUS_MANUAL) {
+                        message = getString(R.string.capture_anyway);
+                    } else {
+                        message = isFocusDistanceSupported ? getString(R.string.move_instruction) : "Capture image at a different distance manually";
+                    }
+                    
+                    if (!message.equals(imageCaptureText.getText().toString())) {
+                        imageCaptureText.setText(message);
+                    }
+                    
+                    if (captureImg.getVisibility() != View.VISIBLE) {
+                        captureImg.setVisibility(View.VISIBLE);
+                        captureImg.setImageResource(R.drawable.move_arrow);
                     }
                 } else {
                     imageCaptureText.setVisibility(View.GONE);
                     captureImg.setVisibility(View.GONE);
-
-                    if (!isImaging) {
-                        isImaging = true;
-                        if (isFlat) {
-                            warningText.setVisibility(View.INVISIBLE);
-
-                            captureButton.setImageResource(R.drawable.green_camera_icon);
-                        }
-                    }
                 }
             } catch (Exception e) {
                 Log.e(TAG, "UI update failed", e);
             }
         });
+    }
+
+    private void updateFocusUI(boolean shouldMoveAway) {
+        updateFocusUI(shouldMoveAway ? FOCUS_STATUS_SIMILAR : FOCUS_STATUS_IDEAL);
     }
 
     private void setFlashMode(int mode) {
@@ -970,12 +1029,18 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
     @SuppressLint("NewApi")
     private void captureStereoImage() {
+        if (isDestroyed() || stereoCameraDevice == null || stereoCaptureSession == null) {
+            isCapturing.set(false);
+            return;
+        }
         try {
+            // Hardware-level synchronous capture request for physical cameras
             CaptureRequest.Builder captureBuilder = stereoCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             
             captureBuilder.addTarget(leftImageReader.getSurface());
             captureBuilder.addTarget(rightImageReader.getSurface());
 
+            // Use distinct temporary files for each camera output
             File leftFile = createImageFile();
             File rightFile = createImageFile();
 
@@ -997,7 +1062,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             stereoCaptureSession.capture(captureBuilder.build(), new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                    Log.d(TAG, "Stereo frames captured");
+                    Log.d(TAG, "Stereo hardware capture complete (synced frames)");
                 }
             }, uiHandler);
 
@@ -1028,17 +1093,60 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         }
     }
 
-    private void checkStereoFilesSaved(File leftFile, File rightFile, AtomicBoolean leftSaved, AtomicBoolean rightSaved) {
+        private void checkStereoFilesSaved(File rawLeftFile, File rawRightFile, AtomicBoolean leftSaved, AtomicBoolean rightSaved) {
         if (leftSaved.get() && rightSaved.get()) {
-            // Remove listeners
+            // Remove listeners immediately to prevent accidental duplicate callbacks
             leftImageReader.setOnImageAvailableListener(null, null);
             rightImageReader.setOnImageAvailableListener(null, null);
 
-            uiHandler.post(() -> {
-                focalLength = 10.0f; // Assign dummy focal length for flow continuity
-                handleImageSaved(leftFile); 
+            cameraExecutor.execute(() -> {
+                try {
+                    // Correct orientation and aspect ratios for BOTH captured frames (parallaxes)
+                    File correctedLeft = correctImageOrientationAndAspect(rawLeftFile);
+                    File correctedRight = correctImageOrientationAndAspect(rawRightFile);
+
+                    if (correctedLeft != null && correctedRight != null) {
+                        Bitmap leftBmp = BitmapFactory.decodeFile(correctedLeft.getAbsolutePath());
+                        Bitmap rightBmp = BitmapFactory.decodeFile(correctedRight.getAbsolutePath());
+
+                        if (leftBmp != null && rightBmp != null) {
+                            // Local depth refinement using stereo hardware params
+                            StereoCameraDetector detector = new StereoCameraDetector(this);
+                            double baseline = detector.getBaselineMm();
+                            double focalLen = detector.getFocalLengthPx(leftBmp.getWidth());
+
+                            WoundDepthProcessor depthProcessor = new WoundDepthProcessor(baseline, focalLen);
+                            WoundDepthProcessor.DepthResult result = depthProcessor.process(leftBmp, rightBmp, null);
+
+                            Log.d(TAG, "Stereo Depth Refined: " + result.maxDepthMm + " mm");
+
+                            uiHandler.post(() -> {
+                                this.localDepthMm = result.maxDepthMm;
+                                this.leftFilePath = correctedLeft.getAbsolutePath();
+                                this.rightFilePath = correctedRight.getAbsolutePath();
+                                handleImageSaved(correctedLeft);
+                            });
+                        } else {
+                            handleStereoFailure(correctedLeft);
+                        }
+                    } else {
+                        handleStereoFailure(rawLeftFile);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Stereo depth processing failed", e);
+                    handleStereoFailure(rawLeftFile);
+                }
             });
         }
+    }
+
+    private void handleStereoFailure(File fallbackFile) {
+        uiHandler.post(() -> {
+            if (fallbackFile != null) {
+                this.leftFilePath = fallbackFile.getAbsolutePath();
+            }
+            handleImageSaved(fallbackFile);
+        });
     }
 
     private File createImageFile() {
@@ -1217,7 +1325,11 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                 intent.putExtra("woundScoreRequired", woundScoreRequired);
                 intent.putExtra("whereFrom", whereFrom);
                 intent.putExtra("imageRotationDeg", String.valueOf(capturedAzimuth));
-                cameraLauncher.launch(intent);
+                intent.putExtra("localDepth", localDepthMm);
+                intent.putExtra("baselineCm", baselineCm);
+                intent.putExtra("leftFilePath", leftFilePath);
+                intent.putExtra("rightFilePath", rightFilePath);
+                startActivityForResult(intent, REQUEST_CODE_SYMPTOM_ACTIVITY);
                 finish();
             } catch (Exception e) {
                 Log.e(TAG, "Upload processing failed", e);
@@ -1262,16 +1374,17 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         }
         
         this.isFlat = isFlat;
-        if (isDestroyed() || warningText == null || captureButton == null) return;
+        updateCaptureButtonReadyState();
+    }
 
+    private void updateCaptureButtonReadyState() {
+        if (isDestroyed() || captureButton == null) return;
+        
         runOnUiThread(() -> {
-            if (isImaging && isFlat) {
+            if (isImaging && (isFlat || !"calibrate".equals(whereFrom))) {
                 captureButton.setImageResource(R.drawable.green_camera_icon);
-                warningText.setVisibility(View.INVISIBLE);
-
             } else {
                 captureButton.setImageResource(R.drawable.camera_icon);
-                warningText.setVisibility(View.VISIBLE);
             }
         });
     }
@@ -1411,6 +1524,43 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     }
 
 
+
+    private void showCaptureTipsBottomSheet() {
+        if (!"woundImage".equals(whereFrom)) return;
+        if (PreferencesHelper.getBooleanPreference(this, PreferencesHelper.PREF_TIPS_SHOWN)) return;
+
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+        View bottomSheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_capture_tips, null);
+        bottomSheetDialog.setContentView(bottomSheetView);
+        bottomSheetDialog.setCancelable(false);
+
+        MaterialButton startCaptureBtn = bottomSheetView.findViewById(R.id.startCaptureBtn);
+
+        if (primaryColor != null) {
+            try {
+                int color = Color.parseColor(primaryColor);
+                startCaptureBtn.setBackgroundTintList(ColorStateList.valueOf(color));
+
+                int[] checkIds = {R.id.check1, R.id.check2, R.id.check3, R.id.check4};
+                for (int id : checkIds) {
+                    ImageView check = bottomSheetView.findViewById(id);
+                    if (check != null) check.setImageTintList(ColorStateList.valueOf(color));
+                }
+
+                int[] iconIds = {R.id.tipIcon1, R.id.tipIcon2, R.id.tipIcon3, R.id.tipIcon4};
+                for (int id : iconIds) {
+                    ImageView icon = bottomSheetView.findViewById(id);
+                    if (icon != null) icon.setImageTintList(ColorStateList.valueOf(color));
+                }
+            } catch (Exception ignored) {}
+        }
+
+        startCaptureBtn.setOnClickListener(v -> {
+            PreferencesHelper.setBooleanPreference(this, PreferencesHelper.PREF_TIPS_SHOWN, true);
+            bottomSheetDialog.dismiss();
+        });
+        bottomSheetDialog.show();
+    }
 
     private boolean isNotEmpty(String str) {
         return str != null && !str.isEmpty();

@@ -43,8 +43,13 @@ public class WoundLocationFragment extends Fragment implements View.OnClickListe
         if (args != null) {
             frontBackBody = args.getString("frontBackBody");
             userId = args.getString("userId");
+            if (userId == null) userId = args.getString("patientId");
+            if (userId == null) userId = args.getString("user_id");
+
             token = args.getString("token");
+
             woundId = args.getString("woundId");
+            if (woundId == null) woundId = args.getString("wound_id");
             primaryColor = args.getString("primaryColor");
             woundScoreRequired = args.getBoolean("woundScoreRequired");
         }

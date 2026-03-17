@@ -58,6 +58,9 @@ public class WoundLocationActivity extends RootActivity {
         repository = new Repository(WoundLocationActivity.this);
 
         userId = getIntent().getStringExtra("userId");
+        if (userId == null) userId = getIntent().getStringExtra("patientId");
+        if (userId == null) userId = getIntent().getStringExtra("user_id");
+
         token = getIntent().getStringExtra("token");
          woundScoreRequired = getIntent().getBooleanExtra("woundScoreRequired", true);
          woundLocationRequired = getIntent().getBooleanExtra("woundLocationRequired", true);
@@ -85,6 +88,9 @@ public class WoundLocationActivity extends RootActivity {
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
 
         woundId = getIntent().getStringExtra("woundId");
+        if (woundId == null) woundId = getIntent().getStringExtra("wound_id");
+
+        Log.d(TAG, "IDs in onCreate: userId=" + userId + ", woundId=" + woundId);
         viewModel = new ViewModelProvider(this).get(WoundLocationViewModel.class);
         observeViewModel();
         if (woundLocation == null) woundLocation = "";

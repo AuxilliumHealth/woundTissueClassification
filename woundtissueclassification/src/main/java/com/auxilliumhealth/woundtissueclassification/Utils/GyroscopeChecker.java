@@ -46,13 +46,13 @@ public class GyroscopeChecker implements SensorEventListener {
 
     public void startListening() {
         if (gyroscope != null) {
-            sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_UI);
         }
         if (accelerometer != null) {
-            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
         }
         if (magnetometer != null) {
-            sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
         }
     }
 
@@ -104,10 +104,11 @@ public class GyroscopeChecker implements SensorEventListener {
                 float azimuthInRadians = orientationAngles[0];
                 float azimuthInDegrees = (float) (Math.toDegrees(azimuthInRadians) + 360) % 360;
                 
-                currentAzimuth = azimuthInDegrees;
-                
-                if (listener != null) {
-                    listener.onAngleChanged(currentAzimuth);
+                if (Math.abs(azimuthInDegrees - currentAzimuth) > 1.0f) {
+                    currentAzimuth = azimuthInDegrees;
+                    if (listener != null) {
+                        listener.onAngleChanged(currentAzimuth);
+                    }
                 }
             }
         }

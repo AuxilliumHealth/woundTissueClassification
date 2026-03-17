@@ -12,6 +12,7 @@ import com.auxilliumhealth.woundtissueclassification.Activities.CameraActivity;
 import com.auxilliumhealth.woundtissueclassification.Activities.WoundListActivity;
 import com.auxilliumhealth.woundtissueclassification.Activities.WoundLocationActivity;
 import com.auxilliumhealth.woundtissueclassification.LocalDatabase.PreferencesHelper;
+import com.auxilliumhealth.woundtissueclassification.Utils.StereoCameraDetector;
 
 public class woundtissueclassification {
     private static final String TAG = "woundtissueclassification";
@@ -39,9 +40,14 @@ public class woundtissueclassification {
 
             boolean hasFocusData = (isNotEmpty(minFocusDistance) && isNotEmpty(maxFocusDistance));
 
+            // Stereo devices don't need manual calibration
+            StereoCameraDetector detector = new StereoCameraDetector(context);
+            boolean isStereoSupported = detector.isStereoSupported();
+
             Intent intent;
 
-            if (calibrationRequired) {
+            // Only go to calibration if requested AND not already calibrated AND not a stereo device
+            if (calibrationRequired && !hasFocusData && !isStereoSupported) {
                 intent = new Intent(context, CalibrationActivity.class);
             } else {
                 intent = new Intent(context, WoundLocationActivity.class);

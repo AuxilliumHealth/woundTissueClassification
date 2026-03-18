@@ -1,3 +1,13 @@
+/**
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ * Created & Developed by:
+ * Aravindhan (Full Stack Engineer)
+ * Auxilliumhealth LLC
+ * GitHub: https://github.com/AravindhanDeveloper
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ * Copyright (c) 2024. All rights reserved.
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ */
 package com.auxilliumhealth.woundtissueclassification.fragments;
 
 import static android.app.Activity.RESULT_CANCELED;

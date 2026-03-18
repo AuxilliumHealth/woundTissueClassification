@@ -81,6 +81,7 @@ flowchart TD
     *   **Peri-wound Analysis**: Detection of Maceration, Erythema, and Callus.
     *   **AI Overlays**: Multi-layered images showing exactly where the AI "sees" different tissue types.
     *   **Measurements**: Precise Length, Width, and Area calculated based on calibration data.
+    *   **Stereo Depth Measurement**: For devices with dual-cameras, the SDK automatically computes wound depth in millimeters using stereoscopic disparity mapping.
     *   **Risk Score**: A synchronized 🔴🟡🟢 indicator summarizing the wound's severity.
 
 ### 4. Adjustments & History

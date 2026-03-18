@@ -1,3 +1,13 @@
+/**
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ * Created & Developed by:
+ * Aravindhan (Full Stack Engineer)
+ * Auxilliumhealth LLC
+ * GitHub: https://github.com/AravindhanDeveloper
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ * Copyright (c) 2024. All rights reserved.
+ * ─────────────────────────────────────────────────────────────────────────────────────
+ */
 package com.auxilliumhealth.woundtissueclassification.Activities;
 
 import android.content.Context;
@@ -353,8 +363,19 @@ public class WoundImageEditActivity extends AppCompatActivity {
             case 3:
                 instructionText.setText("Step 2 of 2 — Tap the RIGHT edge of the wound (opposite side)");
                 break;
+            case 4:
+                instructionText.setText("✓ Wound size marked! Press Done to save measurements.");
+                break;
             default:
-                instructionText.setText("✓ Wound size marked! Press Done to save the measurements.");
+                if (currentMode == InteractiveMode.LASSO) {
+                    instructionText.setText("Lasso Mode: Outline the wound to detect its edges.");
+                } else if (currentMode == InteractiveMode.EDIT) {
+                    instructionText.setText(currentEditMode == EditMode.ADD ? "Add Mode: Outline area to ADD to the wound." : "Remove Mode: Outline area to REMOVE from the wound.");
+                } else if (currentMode == InteractiveMode.ZOOM_PAN) {
+                    instructionText.setText("Zoom Mode: Use two fingers to pinch or drag the image.");
+                } else {
+                    instructionText.setText("✓ Ready! Use tools below to refine or Done to finish.");
+                }
                 break;
         }
     }
@@ -458,7 +479,7 @@ public class WoundImageEditActivity extends AppCompatActivity {
     
     // ── OpenCV Editing Tools ───────────────────────────────────────────
 
-    private void autoEdgeDetection(Mat seedMask) {
+    private void autoEdgeDetection(Mat seedMask, boolean mergeWithExisting) {
         if (baseBitmap == null) return;
         Mat fullExistingMask = canvasView.getCurrentMask();
         Mat focusMask = seedMask != null ? seedMask.clone() : (fullExistingMask != null ? fullExistingMask.clone() : null);
@@ -530,9 +551,13 @@ public class WoundImageEditActivity extends AppCompatActivity {
                     Imgproc.drawContours(resultMask, contours, -1, new Scalar(255), -1);
                 }
 
-                // If adding a NEW lasso, merge it with the existing mask
-                if (seedMask != null && fullExistingMask != null) {
-                    Core.bitwise_or(fullExistingMask, resultMask, resultMask);
+                // Final merging logic for Add mode
+                if (mergeWithExisting) {
+                    Mat existing = canvasView.getCurrentMask();
+                    if (existing != null) {
+                        Core.bitwise_or(existing, resultMask, resultMask);
+                        existing.release();
+                    }
                 }
 
                 updateMaskAndRecontour(resultMask);
@@ -588,14 +613,44 @@ public class WoundImageEditActivity extends AppCompatActivity {
      */
     public void prepareForLasso() {
         if (baseBitmap == null || canvasView == null) return;
-        // Keep existing contours so we can add multiple wounds
-        // canvasView.updateData(baseBitmap, new ArrayList<>());
-        // measurementText.setText(buildBanner(0));
+        if (currentMode == InteractiveMode.LASSO) {
+            canvasView.updateData(baseBitmap, new ArrayList<>());
+            measurementText.setText(buildBanner(0));
+        }
     }
 
     private void updateMaskAndRecontour(Mat newMask8u) {
         if (baseBitmap == null) return;
-        // Recalculate area
+        
+        // Handle component filtering
+        List<MatOfPoint> woundContours = ContourUtils.extractContours(newMask8u);
+        if (woundContours != null && woundContours.size() > 1) {
+            // Sort by area descending
+            woundContours.sort((o1, o2) -> Double.compare(Imgproc.contourArea(o2), Imgproc.contourArea(o1)));
+            
+            // If we are REMOVING, we strictly keep only the largest piece to prevent splitting.
+            // In ADD or LASSO mode, we allow multiple pieces (for disconnected wounds or building).
+            if (currentMode == InteractiveMode.EDIT && currentEditMode == EditMode.REMOVE) {
+                newMask8u.setTo(new Scalar(0));
+                Imgproc.drawContours(newMask8u, woundContours, 0, new Scalar(255), -1);
+                while (woundContours.size() > 1) {
+                    woundContours.remove(1).release();
+                }
+            } else {
+                // For Add/Lasso, we only discard tiny noise (less than 1% of the largest component)
+                double maxArea = Imgproc.contourArea(woundContours.get(0));
+                for (int i = woundContours.size() - 1; i >= 1; i--) {
+                    if (Imgproc.contourArea(woundContours.get(i)) < maxArea * 0.01) {
+                        woundContours.remove(i).release();
+                    }
+                }
+                // Refresh mask to match filtered contours
+                newMask8u.setTo(new Scalar(0));
+                Imgproc.drawContours(newMask8u, woundContours, -1, new Scalar(255), -1);
+            }
+        }
+
+        // 1. Recalculate area for the PRIMARY piece only
         int nonZero = Core.countNonZero(newMask8u);
         double[] areaCoeff = ContourUtils.parseCoefficients(areaCoeffsStr);
         double areaPerPixel = ContourUtils.calculateAreaPerPixel(lensFocusDistance, areaCoeff);
@@ -603,8 +658,7 @@ public class WoundImageEditActivity extends AppCompatActivity {
                 ? Math.max(0, areaPerPixel * nonZero * 10000.0)
                 : 0;
 
-        // Extract new contours
-        List<MatOfPoint> woundContours = ContourUtils.extractContours(newMask8u);
+        // 2. Extract refined border points for drawing
         List<List<android.graphics.PointF>> borderPoints = new ArrayList<>();
         int w = baseBitmap.getWidth();
         int h = baseBitmap.getHeight();
@@ -1142,6 +1196,7 @@ public class WoundImageEditActivity extends AppCompatActivity {
                     case MotionEvent.ACTION_UP:
                         currentLassoPath.close();
                         processCompletedLasso();
+                        // Path and points are now cleared inside act.updateData/autoEdgeDetection
                         break;
                 }
                 invalidate();
@@ -1217,23 +1272,26 @@ public class WoundImageEditActivity extends AppCompatActivity {
 
             Mat currentMask = getCurrentMask();
             if (currentMode == InteractiveMode.LASSO) {
-                // Trigger auto-snap after lasso is done, SKIP the intermediate green contour
+                // Trigger auto-snap after lasso is done
                 Context ctx = getContext();
                 if (ctx instanceof WoundImageEditActivity) {
                     WoundImageEditActivity act = (WoundImageEditActivity) ctx;
                     act.saveHistory();
-                    act.autoEdgeDetection(lassoMask);
+                    act.autoEdgeDetection(lassoMask, false);
                 }
             } else if (currentMode == InteractiveMode.EDIT) {
                 if (currentEditMode == EditMode.ADD) {
+                    // Reverted ADD to manual operation for reliability
                     Core.bitwise_or(currentMask, lassoMask, currentMask);
+                    updateMaskAndRecontourProxy(currentMask);
                 } else {
+                    // REMOVE remains manual for precision
                     Mat invLasso = new Mat();
                     Core.bitwise_not(lassoMask, invLasso);
                     Core.bitwise_and(currentMask, invLasso, currentMask);
                     invLasso.release();
+                    updateMaskAndRecontourProxy(currentMask);
                 }
-                updateMaskAndRecontourProxy(currentMask);
             }
             lassoMask.release();
             currentMask.release();

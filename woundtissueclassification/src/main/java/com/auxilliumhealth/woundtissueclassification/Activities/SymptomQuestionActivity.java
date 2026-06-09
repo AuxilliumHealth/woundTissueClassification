@@ -25,6 +25,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.RadioButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -77,8 +78,6 @@ import retrofit2.Response;
 import com.auxilliumhealth.woundtissueclassification.Network.ApiClient;
 import com.auxilliumhealth.woundtissueclassification.Network.ApiService;
 import com.auxilliumhealth.woundtissueclassification.Model.EditWoundMeasurementsRequest;
-import com.auxilliumhealth.woundtissueclassification.Utils.StereoCameraDetector;
-import com.auxilliumhealth.woundtissueclassification.Utils.WoundDepthProcessor;
 import android.graphics.BitmapFactory;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
@@ -120,10 +119,7 @@ public class SymptomQuestionActivity extends RootActivity {
     private double editedAreaVal   = 0;
     private double editedDepthVal  = 0;
     private double localDepthMm    = 0;
-    private String leftFilePath    = null;
-    private String rightFilePath   = null;
     private String editedImgPath   = null;
-    private double baselineCm      = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -190,9 +186,6 @@ public class SymptomQuestionActivity extends RootActivity {
             if (headDirection == null) headDirection = "TOP"; // Default fallback
 
             localDepthMm = getIntent().getDoubleExtra("localDepth", 0.0);
-            baselineCm = getIntent().getDoubleExtra("baselineCm", 0.0);
-            leftFilePath = getIntent().getStringExtra("leftFilePath");
-            rightFilePath = getIntent().getStringExtra("rightFilePath");
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 getWindow().setStatusBarColor(Color.parseColor(primaryColor));
@@ -206,6 +199,16 @@ public class SymptomQuestionActivity extends RootActivity {
             Log.d(TAG, "woundScoreRequired: " + woundScoreRequired);
 
             setupUIWithPrimaryColor();
+
+            // Verification UI: hidden by default until results are shown
+            binding.verificationLayout.setVisibility(View.GONE);
+            binding.btnFinish.setEnabled(false);
+            binding.btnFinish.setAlpha(0.5f);
+ 
+            binding.cbVerifyMeasurements.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                binding.btnFinish.setEnabled(isChecked);
+                binding.btnFinish.setAlpha(isChecked ? 1.0f : 0.5f);
+            });
 
         } catch (Exception e) {
             Log.e(TAG, "Error in initViews", e);
@@ -289,7 +292,7 @@ public class SymptomQuestionActivity extends RootActivity {
     }
 
     private void startBackgroundAIProcessing() {
-        if (imageUrl != null && woundId != null && token != null) {
+        if (imageUrl != null && woundId != null && !woundId.isEmpty() && token != null) {
             if (!isProcessingAI.get()) {
                 Log.d(TAG, "Starting background AI processing...");
                 String areaCoff = PreferencesHelper.getPreference(this, PreferencesHelper.PREF_AREA_COEFFS);
@@ -306,7 +309,7 @@ public class SymptomQuestionActivity extends RootActivity {
                     }
                 }
 
-                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg, leftFilePath, rightFilePath, baselineCm);
+                processAIModelImageInBackground(userId, sessionId, imageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg);
             }
         } else {
             Log.w(TAG, "Missing required data for AI processing - imageUrl: " + (imageUrl != null) + ", woundId: " + (woundId != null) + ", token: " + (token != null));
@@ -734,7 +737,7 @@ public class SymptomQuestionActivity extends RootActivity {
         repository.submitAnswers(request, token);
     }
 
-    private void processAIModelImageInBackground(String userId, String sessionId, String imagePath, String woundId, double lensFocalDistance, String token, String areaCoff, String pixelPerUnit, List<Double> lassoCoordinates, String imageRotationDeg, String leftImagePath, String rightImagePath, double baselineCmValue) {
+    private void processAIModelImageInBackground(String userId, String sessionId, String imagePath, String woundId, double lensFocalDistance, String token, String areaCoff, String pixelPerUnit, List<Double> lassoCoordinates, String imageRotationDeg) {
         if (isProcessingAI.get()) {
             Log.d(TAG, "AI Model processing already in progress");
             return;
@@ -746,7 +749,7 @@ public class SymptomQuestionActivity extends RootActivity {
         List<Double> emptyCoeffs = new ArrayList<>();
         AIModelProcessRequest request = new AIModelProcessRequest(userId, imagePath, sessionId, woundId, lensFocalDistance, 
                 convertToDoubleList(pixelPerUnit), convertToDoubleList(areaCoff), lassoCoordinates, woundLocation, 
-                imageRotationDeg, headDirection, leftImagePath, rightImagePath, baselineCmValue);
+                imageRotationDeg, headDirection, null, null, 0.0);
         Log.d(TAG, "headDirection: "+headDirection);
         repository.processAIModelImage(request, token, new Repository.GetCommonAPIDataSuccessCallBack() {
             @Override
@@ -766,11 +769,11 @@ public class SymptomQuestionActivity extends RootActivity {
                             // Direct AI results flow — open edit screen first
                             runOnUiThread(() -> {
                                 hideLoadingDialog();
-//                                if (woundAnalysis.getAiModelData() != null) {
-//                                    showWoundImageEditScreen(woundAnalysis.getAiModelData());
-//                                } else {
+                                if (woundAnalysis.getAiModelData() != null) {
+                                    showWoundImageEditScreen(woundAnalysis.getAiModelData());
+                                } else {
                                     showFinalResults(woundAnalysis, null);
-//                                }
+                                }
                             });
                         } else {
                             // Symptom questions flow - if answers are already submitted, proceed with results
@@ -853,7 +856,7 @@ public class SymptomQuestionActivity extends RootActivity {
     }
 
     /**
-     * Called immediately after showFinalResults() to restore user-edited measurements
+     * Called immediately after showFinalResults() to r   estore user-edited measurements
      * displayed in WoundImageEditActivity, which would otherwise be overwritten by displayWoundMeasurements().
      */
     private void applyEditedMeasurementsOverride() {
@@ -913,9 +916,13 @@ public class SymptomQuestionActivity extends RootActivity {
                 imageList.add(new AnalysisImage("Cropped Image", result.getAiModelData().getCroppedImagePath()));
                 imageList.add(new AnalysisImage("Wound & Peri-wound Tissue", result.getAiModelData().getWoundPeriwoundOverlayImagePath()));
                 imageList.add(new AnalysisImage("Wound Tissue ", result.getAiModelData().getWoundTissueOverlayImagePath()));
-                imageList.add(new AnalysisImage("Peri-wound Tissue", result.getAiModelData().getPeriWoundTissueOverlayImagePath()));
+
 
                 binding.btnFinish.setVisibility(View.VISIBLE);
+                binding.verificationLayout.setVisibility(View.VISIBLE);
+                binding.btnFinish.setEnabled(binding.cbVerifyMeasurements.isChecked());
+                binding.btnFinish.setAlpha(binding.cbVerifyMeasurements.isChecked() ? 1.0f : 0.5f);
+                binding.btnFinish.setText("Finish");
                 LinearLayoutManager layoutManager = new LinearLayoutManager(SymptomQuestionActivity.this, LinearLayoutManager.HORIZONTAL, false);
                 binding.processedImageRecyclerview.setLayoutManager(layoutManager);
                 binding.processedImageRecyclerview.scrollToPosition(0);
@@ -978,6 +985,59 @@ public class SymptomQuestionActivity extends RootActivity {
     // NEW METHOD: Properly return success result
     private void returnResultSuccess() {
         Log.d(TAG, "=== PREPARING TO RETURN SUCCESS RESULT ===");
+ 
+        // 1. Send manual verification to API before finishing
+        showLoadingDialog("Finalizing Evaluation", "Saving your verification status...");
+        
+        try {
+            double area = safeParseDouble(binding.woundAreaTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+            double length = safeParseDouble(binding.woundLengthTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+            double width = safeParseDouble(binding.woundWidthTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+            double depth = safeParseDouble(binding.woundDepthTxt.getText().toString().replace(" cm²", "").replace(" cm", "").trim());
+ 
+            EditWoundMeasurementsRequest request = new EditWoundMeasurementsRequest(userId, sessionId, area, length, width, depth, true);
+            
+            Repository.GetCommonAPIDataSuccessCallBack callback = new Repository.GetCommonAPIDataSuccessCallBack() {
+                @Override
+                public void getCommonAPIDataSuccess(ResponseBody apiArrayResponse) {
+                    hideLoadingDialog();
+                    proceedWithResultReturn();
+                }
+ 
+                @Override
+                public void getCommonAPIDataFailure(String message) {
+                    Log.e(TAG, "Failed to save verification status: " + message);
+                    hideLoadingDialog();
+                    // Still proceed to finish even if API fails, to not block the user
+                    proceedWithResultReturn();
+                }
+ 
+                @Override
+                public void onProgressUpdate(int progress) {
+                    // Progress updates not needed for this simple completion call
+                }
+            };
+ 
+            repository.setGetCommonAPIDetails(callback);
+            repository.editWoundMeasurements(request, null, token, callback);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error in returnResultSuccess API call", e);
+            hideLoadingDialog();
+            proceedWithResultReturn();
+        }
+    }
+ 
+    private double safeParseDouble(String value) {
+        if (value == null || value.isEmpty()) return 0.0;
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException e) {
+            return 0.0;
+        }
+    }
+ 
+    private void proceedWithResultReturn() {
         isResultSet = true; // Set this first to prevent onDestroy from overriding our result
 
         try {
@@ -1060,10 +1120,7 @@ public class SymptomQuestionActivity extends RootActivity {
             // Display wound measurements
             displayWoundMeasurements(woundAnalysis.getAiModelData());
 
-            // If we have local stereo images, we can attempt a refined depth calculation
-            if (leftFilePath != null && rightFilePath != null && (woundAnalysis.getAiModelData().getWoundDepth() == null || woundAnalysis.getAiModelData().getWoundDepth() <= 0)) {
-                refineStereoDepthLocally();
-            }
+
 
             // Make the wound analytics card visible
             binding.woundanalyticCard.setVisibility(View.VISIBLE);
@@ -1263,12 +1320,89 @@ public class SymptomQuestionActivity extends RootActivity {
         com.google.android.material.button.MaterialButton btnCancel = bottomSheetView.findViewById(R.id.btn_cancel);
         com.google.android.material.button.MaterialButton btnSave = bottomSheetView.findViewById(R.id.btn_save);
 
+        TextView titleTxt = bottomSheetView.findViewById(R.id.edit_title_txt);
+        com.google.android.material.textfield.TextInputLayout layoutArea = bottomSheetView.findViewById(R.id.edit_area_layout);
+        com.google.android.material.textfield.TextInputLayout layoutWidth = bottomSheetView.findViewById(R.id.edit_width_layout);
+        com.google.android.material.textfield.TextInputLayout layoutLength = bottomSheetView.findViewById(R.id.edit_length_layout);
+        com.google.android.material.textfield.TextInputLayout layoutDepth = bottomSheetView.findViewById(R.id.edit_depth_layout);
+
         if (primaryColor != null) {
             try {
                 int c = Color.parseColor(primaryColor);
-                btnSave.setBackgroundTintList(ColorStateList.valueOf(c));
-                btnCancel.setStrokeColor(ColorStateList.valueOf(c));
-                btnCancel.setTextColor(ColorStateList.valueOf(c));
+                btnSave.setBackgroundTintList(android.content.res.ColorStateList.valueOf(c));
+                btnCancel.setStrokeColor(android.content.res.ColorStateList.valueOf(c));
+                btnCancel.setTextColor(android.content.res.ColorStateList.valueOf(c));
+                titleTxt.setTextColor(c);
+
+                int[][] states = new int[][] {
+                    new int[] { android.R.attr.state_focused },
+                    new int[] {}
+                };
+                int[] colors = new int[] {
+                    c,
+                    Color.GRAY
+                };
+                android.content.res.ColorStateList stateList = new android.content.res.ColorStateList(states, colors);
+
+                layoutArea.setBoxStrokeColorStateList(stateList);
+                layoutArea.setDefaultHintTextColor(stateList);
+                layoutWidth.setBoxStrokeColorStateList(stateList);
+                layoutWidth.setDefaultHintTextColor(stateList);
+                layoutLength.setBoxStrokeColorStateList(stateList);
+                layoutLength.setDefaultHintTextColor(stateList);
+                layoutDepth.setBoxStrokeColorStateList(stateList);
+                layoutDepth.setDefaultHintTextColor(stateList);
+
+                com.google.android.material.textfield.TextInputEditText[] edits = {editArea, editWidth, editLength, editDepth};
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    for (com.google.android.material.textfield.TextInputEditText et : edits) {
+                        // 1. Blinking Vertical Cursor Line
+                        android.graphics.drawable.ShapeDrawable newCursor = new android.graphics.drawable.ShapeDrawable(new android.graphics.drawable.shapes.RectShape());
+                        newCursor.getPaint().setColor(c);
+                        newCursor.setIntrinsicWidth((int) (2 * et.getResources().getDisplayMetrics().density));
+                        et.setTextCursorDrawable(newCursor);
+                        
+                        // 2. Teardrop Selection Handles
+                        android.graphics.drawable.Drawable handle = et.getTextSelectHandle();
+                        if (handle != null) { handle.mutate().setTint(c); et.setTextSelectHandle(handle); }
+                        
+                        android.graphics.drawable.Drawable handleLeft = et.getTextSelectHandleLeft();
+                        if (handleLeft != null) { handleLeft.mutate().setTint(c); et.setTextSelectHandleLeft(handleLeft); }
+                        
+                        android.graphics.drawable.Drawable handleRight = et.getTextSelectHandleRight();
+                        if (handleRight != null) { handleRight.mutate().setTint(c); et.setTextSelectHandleRight(handleRight); }
+                    }
+                } else {
+                    try {
+                        // Reflection fallback for pre-API 29
+                        java.lang.reflect.Field fCursorDrawableRes = android.widget.TextView.class.getDeclaredField("mCursorDrawableRes");
+                        fCursorDrawableRes.setAccessible(true);
+                        int mCursorDrawableRes = fCursorDrawableRes.getInt(editArea);
+                        
+                        java.lang.reflect.Field fEditor = android.widget.TextView.class.getDeclaredField("mEditor");
+                        fEditor.setAccessible(true);
+                        
+                        for (com.google.android.material.textfield.TextInputEditText et : edits) {
+                            Object editor = fEditor.get(et);
+                            if (editor == null) continue;
+                            java.lang.reflect.Field fCursorDrawable = editor.getClass().getDeclaredField("mCursorDrawable");
+                            fCursorDrawable.setAccessible(true);
+                            android.graphics.drawable.Drawable[] drawables = new android.graphics.drawable.Drawable[2];
+                            drawables[0] = androidx.core.content.ContextCompat.getDrawable(et.getContext(), mCursorDrawableRes);
+                            if (drawables[0] != null) {
+                                drawables[0] = drawables[0].mutate();
+                                drawables[0].setColorFilter(c, android.graphics.PorterDuff.Mode.SRC_IN);
+                            }
+                            drawables[1] = androidx.core.content.ContextCompat.getDrawable(et.getContext(), mCursorDrawableRes);
+                            if (drawables[1] != null) {
+                                drawables[1] = drawables[1].mutate();
+                                drawables[1].setColorFilter(c, android.graphics.PorterDuff.Mode.SRC_IN);
+                            }
+                            fCursorDrawable.set(editor, drawables);
+                        }
+                    } catch (Exception ignored) {}
+                }
+
             } catch (Exception ignored) {}
         }
 
@@ -1297,7 +1431,7 @@ public class SymptomQuestionActivity extends RootActivity {
             loadingDialog.updateTitle("Please Wait");
             loadingDialog.updateMessage("Updating measurements...");
 
-            EditWoundMeasurementsRequest request = new EditWoundMeasurementsRequest(userId, sessionId, area, length, width, depth);
+            EditWoundMeasurementsRequest request = new EditWoundMeasurementsRequest(userId, sessionId, area, length, width, depth, false);
             repository.editWoundMeasurements(
                     request,
                     null,   // no axis image from the type-values bottom sheet
@@ -1306,10 +1440,22 @@ public class SymptomQuestionActivity extends RootActivity {
                 @Override
                 public void getCommonAPIDataSuccess(ResponseBody models) {
                     loadingDialog.dismiss();
-                    if (!areaStr.isEmpty()) binding.woundAreaTxt.setText(areaStr + " cm²");
-                    if (!widthStr.isEmpty()) binding.woundWidthTxt.setText(widthStr + " cm");
-                    if (!lengthStr.isEmpty()) binding.woundLengthTxt.setText(lengthStr + " cm");
-                    if (!depthStr.isEmpty()) binding.woundDepthTxt.setText(depthStr + " mm");
+                    if (!areaStr.isEmpty()) {
+                        binding.woundAreaTxt.setText(areaStr + " cm²");
+                        editedAreaVal = area;
+                    }
+                    if (!widthStr.isEmpty()) {
+                        binding.woundWidthTxt.setText(widthStr + " cm");
+                        editedWidthCm = width;
+                    }
+                    if (!lengthStr.isEmpty()) {
+                        binding.woundLengthTxt.setText(lengthStr + " cm");
+                        editedLengthCm = length;
+                    }
+                    if (!depthStr.isEmpty()) {
+                        binding.woundDepthTxt.setText(depthStr + " mm");
+                        editedDepthVal = depth;
+                    }
 
                     bottomSheetDialog.dismiss();
                 }
@@ -1432,11 +1578,11 @@ public class SymptomQuestionActivity extends RootActivity {
                 editedImgPath  = imgPath;
 
                 // Call editWoundMeasurements API to persist new dimensions
-                if (lengthCm > 0 || widthCm > 0) {
+                if (lengthCm > 0 || widthCm > 0 || areaVal > 0) {
                     showLoadingDialog("Saving Measurements", "Updating wound dimensions...");
 
                     EditWoundMeasurementsRequest request = new EditWoundMeasurementsRequest(
-                            userId, sessionId, areaVal, lengthCm, widthCm, depthVal);
+                            userId, sessionId, areaVal, lengthCm, widthCm, depthVal, false);
 
                     repository.editWoundMeasurements(
                             request,
@@ -1471,8 +1617,10 @@ public class SymptomQuestionActivity extends RootActivity {
                     applyEditedMeasurementsOverride();
                 }
             } else {
-                // User pressed back/cancelled - still show the results screen with original AI defaults
+                // User pressed back/cancelled — restore the last confirmed measurements + image,
+                // instead of reverting to the raw AI defaults.
                 showFinalResults(woundAnalysis, null);
+                applyEditedMeasurementsOverride();
             }
             return;
         }
@@ -1550,7 +1698,7 @@ public class SymptomQuestionActivity extends RootActivity {
             isProcessingAI.set(false);
             isAiProcessingCompleted = false;
 
-            processAIModelImageInBackground(userId, sessionId, reprocessImageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg, leftFilePath, rightFilePath, baselineCm);
+            processAIModelImageInBackground(userId, sessionId, reprocessImageUrl, woundId, focusDistance, token, areaCoff, pixelPerUnit, currentLassoCoords, imageRotationDeg);
         }
     }
 
@@ -1599,38 +1747,7 @@ public class SymptomQuestionActivity extends RootActivity {
         super.onBackPressed();
     }
 
-    private void refineStereoDepthLocally() {
-        if (leftFilePath == null || rightFilePath == null) return;
 
-        new Thread(() -> {
-            try {
-                Bitmap leftBmp = BitmapFactory.decodeFile(leftFilePath);
-                Bitmap rightBmp = BitmapFactory.decodeFile(rightFilePath);
-
-                if (leftBmp != null && rightBmp != null) {
-                    StereoCameraDetector detector = new StereoCameraDetector(this);
-                    double baseline = detector.getBaselineMm();
-                    double focalLen = detector.getFocalLengthPx(leftBmp.getWidth());
-
-                    WoundDepthProcessor depthProcessor = new WoundDepthProcessor(baseline, focalLen);
-                    
-                    // Re-calculate with local images (can add mask refinement later if we download mask)
-                    WoundDepthProcessor.DepthResult result = depthProcessor.process(leftBmp, rightBmp, null);
-
-                    Log.d(TAG, "Refined Stereo Depth: " + result.maxDepthMm + " mm");
-
-                    runOnUiThread(() -> {
-                        if (result.maxDepthMm > 0) {
-                            localDepthMm = result.maxDepthMm;
-                            binding.woundDepthTxt.setText(String.format("%.2f mm", localDepthMm));
-                        }
-                    });
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Refined depth calculation failed", e);
-            }
-        }).start();
-    }
 
     @Override
     protected void onDestroy() {

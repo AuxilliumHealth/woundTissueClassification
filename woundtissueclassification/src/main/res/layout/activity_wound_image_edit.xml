@@ -1,305 +1,403 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
-    android:fitsSystemWindows="true"
-    android:orientation="vertical">
+    android:background="#FFFFFF"
+    android:fitsSystemWindows="true">
 
-    <!-- Toolbar -->
+    <!-- Full Width Top App Bar with added space -->
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:elevation="0dp">
+        android:background="#FFFFFF"
+        android:paddingBottom="8dp"
+        app:elevation="0dp"
+        app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="wrap_content"
+            android:minHeight="?attr/actionBarSize"
+            android:background="#FFFFFF"
+            app:contentInsetStart="0dp"
+            app:contentInsetStartWithNavigation="0dp"
             app:navigationIcon="@drawable/arrow_left_icon"
-            app:navigationIconTint="@color/white">
+            app:navigationIconTint="#000000">
 
             <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/toolbar_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center"
                 android:text="Mark Wound Size"
-                android:textColor="@color/white"
+                android:textColor="#000000"
                 android:textSize="18sp"
                 android:textStyle="bold" />
+
+            <!-- Right side: Reset + Help aligned horizontally -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- Reset Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_toolbar_reset"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:gravity="center"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:text="Reset"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:rippleColor="#1A000000" />
+
+                <!-- Help Icon -->
+                <ImageView
+                    android:id="@+id/btn_help"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="8dp"
+                    android:padding="8dp"
+                    android:src="@drawable/help_icon"
+                    app:tint="#000000"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+            </LinearLayout>
 
         </com.google.android.material.appbar.MaterialToolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Step instruction banner -->
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/instruction_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#CC000000"
-        android:gravity="center"
-        android:padding="8dp"
-        android:text="Loading wound image, please wait…"
-        android:textColor="#FFFFFF"
-        android:textSize="12sp" />
-
-    <!-- Auto area from mask (dark blue background) -->
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/measurement_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#CC1A237E"
-        android:gravity="center"
-        android:padding="8dp"
-        android:text=""
-        android:textColor="#FFFFFF"
-        android:textSize="11sp"
-        android:visibility="gone" />
-
-    <!-- Tools Toolbar -->
-    <HorizontalScrollView
-        android:id="@+id/tools_scroll_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#1E1E1E"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
-
-            <!-- Zoom & Pan -->
-            <LinearLayout
-                android:id="@+id/tool_zoom"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/zoom_and_pan_icon"
-                    app:tint="@color/white" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Zoom"
-                    android:textColor="@color/white"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <!-- Lasso -->
-            <LinearLayout
-                android:id="@+id/tool_lasso"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/lasso_icon"
-                    app:tint="@color/white" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Lasso"
-                    android:textColor="@color/white"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <!-- Expand -->
-            <LinearLayout
-                android:id="@+id/tool_expand"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/expand_wound_area"
-                    app:tint="@color/white" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Expand"
-                    android:textColor="@color/white"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <!-- Shrink -->
-            <LinearLayout
-                android:id="@+id/tool_shrink"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/shrink_wound_area_icon"
-                    app:tint="@color/white" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Shrink"
-                    android:textColor="@color/white"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <!-- Add -->
-            <LinearLayout
-                android:id="@+id/tool_add"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/add_wound_area"
-                    app:tint="@color/white" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Add"
-                    android:textColor="@color/white"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <!-- Remove -->
-            <LinearLayout
-                android:id="@+id/tool_remove"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/remove_wound_area"
-                    app:tint="@color/white" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Remove"
-                    android:textColor="@color/white"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-            <!-- Measure (the current 4-tap logic) -->
-            <LinearLayout
-                android:id="@+id/tool_measure"
-                android:layout_width="70dp"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:clickable="true"
-                android:focusable="true"
-                android:background="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/straight_angle_icon"
-                    app:tint="@color/white" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Measure"
-                    android:textColor="@color/white"
-                    android:textSize="10sp" />
-            </LinearLayout>
-
-        </LinearLayout>
-    </HorizontalScrollView>
-
-    <!-- Interactive canvas -->
+    <!-- Interactive canvas (Fullscreen behind floating elements) -->
     <FrameLayout
         android:id="@+id/canvas_container"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone" />
+        android:background="#000000"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_panel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout">
 
     </FrameLayout>
 
-    <!-- Bottom bar: Undo + Clear + Done -->
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+
+    <!-- Bottom Panel Container (Solid background, not overlaying the image) -->
     <LinearLayout
+        android:id="@+id/bottom_panel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1E1E1E"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:weightSum="3">
+        android:background="#FFFFFF"
+        android:orientation="vertical"
+        android:elevation="12dp"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_undo"
-            android:layout_width="0dp"
-            android:layout_height="46dp"
-            android:layout_marginEnd="6dp"
-            android:layout_weight="1"
-            android:text="Undo"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            app:cornerRadius="8dp"
-            app:icon="@drawable/ic_undo"
-            app:iconGravity="start"
-            app:iconTint="@color/white"
-            app:iconSize="18dp" />
+        <!-- Hint / Instruction Section (Integrated into bottom panel to keep image clear) -->
+        <TextView
+            android:id="@+id/instruction_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="4dp"
+            android:text="Instruction"
+            android:textColor="#666666"
+            android:textSize="12sp"
+            android:textStyle="italic" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_clear"
-            android:layout_width="0dp"
-            android:layout_height="46dp"
-            android:layout_marginEnd="6dp"
-            android:layout_weight="1"
-            android:text="Clear"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            app:cornerRadius="8dp"
-            app:backgroundTint="#B71C1C" />
+        <!-- Measurement Summary Section -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/results_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#F1F4F9">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_save"
-            android:layout_width="0dp"
-            android:layout_height="46dp"
-            android:layout_weight="1"
-            android:text="Done"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            app:cornerRadius="8dp" />
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/measurement_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:padding="10dp"
+                android:text="Wound Measurements"
+                android:textColor="#1A237E"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="visible" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Tools Scrolling Area -->
+        <HorizontalScrollView
+            android:id="@+id/tools_scroll_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="8dp">
+
+                <!-- Measure -->
+                <LinearLayout
+                    android:id="@+id/tool_measure"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_ruler"
+                        app:tint="#555555" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="MEASURE"
+                        android:textColor="#555555"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Lasso -->
+                <LinearLayout
+                    android:id="@+id/tool_lasso"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="@drawable/bg_tool_active"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/lasso_icon"
+                        app:tint="#FFFFFF" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="LASSO"
+                        android:textColor="#FFFFFF"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Expand -->
+                <LinearLayout
+                    android:id="@+id/tool_expand"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/expand_wound_area"
+                        app:tint="#555555" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="EXPAND"
+                        android:textColor="#555555"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Shrink -->
+                <LinearLayout
+                    android:id="@+id/tool_shrink"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/shrink_wound_area_icon"
+                        app:tint="#555555" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="SHRINK"
+                        android:textColor="#555555"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Add -->
+                <LinearLayout
+                    android:id="@+id/tool_add"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:src="@drawable/add_wound_area"
+                        app:tint="#555555" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="ADD"
+                        android:textColor="#555555"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Remove -->
+                <LinearLayout
+                    android:id="@+id/tool_remove"
+                    android:layout_width="66dp"
+                    android:layout_height="66dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/remove_wound_area"
+                        app:tint="#555555" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="REMOVE"
+                        android:textColor="#555555"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Actions Bar -->
+        <LinearLayout
+            android:id="@+id/bottom_actions_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp"
+            android:weightSum="1">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_undo"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="0.35"
+                android:backgroundTint="#FFFFFF"
+                android:text="Undo"
+                android:textAllCaps="false"
+                android:textColor="#121212"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_undo"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconSize="18dp"
+                app:iconTint="#121212"
+                app:strokeColor="#E0E0E0"
+                app:strokeWidth="1dp" />
+
+            <!-- Hidden Clear Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_clear"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_save"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="0.65"
+                android:backgroundTint="#2CA6CC"
+                android:text="Confirm Measurement"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:cornerRadius="12dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
+

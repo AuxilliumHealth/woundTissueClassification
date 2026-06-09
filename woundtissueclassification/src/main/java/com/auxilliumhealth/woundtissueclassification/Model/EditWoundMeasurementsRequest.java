@@ -39,13 +39,26 @@ public class EditWoundMeasurementsRequest {
     @Expose
     private Double woundDepth;
 
-    public EditWoundMeasurementsRequest(String userId, String sessionId, Double woundArea, Double woundLength, Double woundWidth, Double woundDepth) {
+    @SerializedName("manualVerification")
+    @Expose
+    private Boolean manualVerification;
+
+    public EditWoundMeasurementsRequest(String userId, String sessionId, Double woundArea, Double woundLength, Double woundWidth, Double woundDepth, Boolean manualVerification) {
         this.userId = userId;
         this.sessionId = sessionId;
         this.woundArea = woundArea;
         this.woundLength = woundLength;
         this.woundWidth = woundWidth;
         this.woundDepth = woundDepth;
+        this.manualVerification = manualVerification;
+    }
+
+    public Boolean getManualVerification() {
+        return manualVerification;
+    }
+
+    public void setManualVerification(Boolean manualVerification) {
+        this.manualVerification = manualVerification;
     }
 
     public String getUserId() {

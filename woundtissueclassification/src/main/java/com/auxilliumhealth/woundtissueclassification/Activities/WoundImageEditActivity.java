@@ -59,8 +59,9 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.imgproc.CLAHE;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Moments;
+import org.opencv.imgproc.CLAHE;
 
 import com.auxilliumhealth.woundtissueclassification.Utils.ContourUtils;
 
@@ -112,6 +113,12 @@ public class WoundImageEditActivity extends AppCompatActivity {
 
     private String primaryColor;
     private double lensFocusDistance;
+    
+    // Member variables to store the initial AI detection state
+    private Bitmap initialProcessBitmap;
+    private List<List<android.graphics.PointF>> initialBorderPoints;
+    private android.graphics.PointF initialCentroid;
+    private double initialWoundAreaDetected;
     /**
      * Raw strings from intent — parsed by ContourUtils.parseCoefficients
      */
@@ -160,12 +167,17 @@ public class WoundImageEditActivity extends AppCompatActivity {
         instructionText = findViewById(R.id.instruction_text);
         measurementText = findViewById(R.id.measurement_text);
         undoBtn = findViewById(R.id.btn_undo);
-        MaterialButton clearBtn = findViewById(R.id.btn_clear);
+        
+        // Map the new top-right reset button to the clear logic
+        MaterialButton clearBtn = findViewById(R.id.btn_clear); // Hidden in XML but used for logic if needed
+        
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         MaterialButton saveBtn = findViewById(R.id.btn_save);
         saveBtn.setEnabled(false);   // enabled only when both lines are drawn
-        saveBtn.setAlpha(0.45f);
+        saveBtn.setAlpha(0.6f);
         FrameLayout canvasContainer = findViewById(R.id.canvas_container);
+
+
 
         // Intent data
         String croppedImagePath = getIntent().getStringExtra("croppedImagePath");
@@ -187,50 +199,93 @@ public class WoundImageEditActivity extends AppCompatActivity {
             lensFocusDistance = 0;
         }
 
+        int statusBarColor = Color.WHITE;
         if (primaryColor != null) {
             try {
-                int c = Color.parseColor(primaryColor);
-                toolbar.setBackgroundColor(c);
-                saveBtn.setBackgroundTintList(ColorStateList.valueOf(c));
-                undoBtn.setBackgroundTintList(ColorStateList.valueOf(c));
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    android.view.Window window = getWindow();
-                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-                    window.setStatusBarColor(c);
-                    
-                    // Toggle dark icons if primary color is light (API 23+)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        double luminance = (0.299 * Color.red(c) + 0.587 * Color.green(c) + 0.114 * Color.blue(c)) / 255.0;
-                        int flags = window.getDecorView().getSystemUiVisibility();
-                        if (luminance > 0.5) {
-                            flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-                        } else {
-                            flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-                        }
-                        window.getDecorView().setSystemUiVisibility(flags);
-                    }
+                statusBarColor = Color.parseColor(primaryColor);
+                if (saveBtn != null) saveBtn.setBackgroundTintList(ColorStateList.valueOf(statusBarColor));
+
+                // Apply primary color to the App Bar
+                View appBar = findViewById(R.id.appBarLayout);
+                if (appBar != null) appBar.setBackgroundColor(statusBarColor);
+                if (toolbar != null) toolbar.setBackgroundColor(statusBarColor);
+
+                // Calculate luminance to decide text/icon color (White or Black)
+                double luminance = (0.299 * Color.red(statusBarColor) + 0.587 * Color.green(statusBarColor) + 0.114 * Color.blue(statusBarColor)) / 255.0;
+                int contrastColor = (luminance > 0.6) ? Color.BLACK : Color.WHITE;
+
+                // Update Toolbar elements color
+                TextView titleView = findViewById(R.id.toolbar_title);
+                if (titleView != null) titleView.setTextColor(contrastColor);
+
+                if (toolbar != null) {
+                    toolbar.setNavigationIconTint(contrastColor);
                 }
+
+                ImageView helpBtn = findViewById(R.id.btn_help);
+                if (helpBtn != null) helpBtn.setImageTintList(ColorStateList.valueOf(contrastColor));
+
+                MaterialButton resetToolbarBtn = findViewById(R.id.btn_toolbar_reset);
+                if (resetToolbarBtn != null) resetToolbarBtn.setTextColor(contrastColor);
             } catch (Exception ignored) {
+                statusBarColor = Color.WHITE;
             }
         }
 
-        toolbar.inflateMenu(R.menu.menu_image_edit);
-        toolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.action_clear) {
-                saveHistory();
-                canvasView.clear();
-                saveBtn.setEnabled(false);
-                saveBtn.setAlpha(0.45f);
-                return true;
+        // Update Status Bar
+        android.view.Window window = getWindow();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.setStatusBarColor(statusBarColor);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                int flags = window.getDecorView().getSystemUiVisibility();
+                // Force black icons (Light Status Bar)
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                window.getDecorView().setSystemUiVisibility(flags);
             }
-            return false;
-        });
+        }
+
+        // toolbar.inflateMenu(R.menu.menu_image_edit); // Using custom reset button in layout
         toolbar.setNavigationOnClickListener(v -> finish());
         final MaterialButton finalSaveBtn = saveBtn;
         saveBtn.setOnClickListener(v -> onDoneClicked());
         undoBtn.setOnClickListener(v -> performUndo());
+        
+        ImageView helpBtn = findViewById(R.id.btn_help);
+        if (helpBtn != null) {
+            helpBtn.setOnClickListener(v -> showHelpDialog());
+        }
+
+        MaterialButton resetToolbarBtn = findViewById(R.id.btn_toolbar_reset);
+        if (resetToolbarBtn != null) {
+            resetToolbarBtn.setOnClickListener(v -> {
+                if (canvasView != null && initialProcessBitmap != null) {
+                    saveHistory();
+                    
+                    // Reset to the initial detection state
+                    woundArea = initialWoundAreaDetected;
+                    canvasView.updateData(initialProcessBitmap, initialBorderPoints, initialCentroid);
+                    
+                    // Clear any manual measurements
+                    canvasView.clear(); 
+                    
+                    finalSaveBtn.setEnabled(false);
+                    finalSaveBtn.setAlpha(0.45f);
+                    updateInstructions(0);
+                    
+                    // Reset banner to initial area
+                    measurementText.setText(buildBanner(woundArea));
+                    
+                    // Switch to MEASURE mode for the initial detected wound
+                    setMode(InteractiveMode.MEASURE);
+                    
+                    Toast.makeText(this, "Reset to initial detection", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         clearBtn.setOnClickListener(v -> {
             if (canvasView != null) {
                 saveHistory();
@@ -275,10 +330,14 @@ public class WoundImageEditActivity extends AppCompatActivity {
                         ? String.format("%.2f cm", (pixDistAB / pixelPerUnit) * 100.0)
                         : String.format("%.0f px", pixDistAB);
             }
-            if (count >= 4 && pixDistCD > 0) {
-                widthStr = pixelPerUnit > 0
-                        ? String.format("%.2f cm", (pixDistCD / pixelPerUnit) * 100.0)
-                        : String.format("%.0f px", pixDistCD);
+            if (count >= 3) {
+                if (count >= 4 && pixDistCD > 0) {
+                    widthStr = pixelPerUnit > 0
+                            ? String.format("%.2f cm", (pixDistCD / pixelPerUnit) * 100.0)
+                            : String.format("%.0f px", pixDistCD);
+                } else {
+                    widthStr = "--";
+                }
             }
             measurementText.setText(buildBanner(woundArea, lengthStr, widthStr));
             measurementText.setVisibility(View.VISIBLE);
@@ -333,6 +392,31 @@ public class WoundImageEditActivity extends AppCompatActivity {
         }
     }
 
+    private void showHelpDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_wound_edit_help, null);
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        // If defined, update the dialog background to be transparent to support rounded corners
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        MaterialButton gotItBtn = dialogView.findViewById(R.id.btn_got_it);
+        if (gotItBtn != null) {
+            try {
+                if (primaryColor != null) {
+                    gotItBtn.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor(primaryColor)));
+                }
+            } catch (Exception ignored) {}
+            gotItBtn.setOnClickListener(v -> dialog.dismiss());
+        }
+
+        dialog.show();
+    }
+
     @Override
     public void onBackPressed() {
         super.onBackPressed();
@@ -342,29 +426,29 @@ public class WoundImageEditActivity extends AppCompatActivity {
     private void updateInstructions(int count) {
         if (currentMode != InteractiveMode.MEASURE) {
             switch (currentMode) {
-                case ZOOM_PAN: instructionText.setText("Pinch to zoom and Drag to pan"); break;
-                case LASSO: instructionText.setText("Draw a contour around the wound"); break;
-                case EDIT: instructionText.setText(currentEditMode == EditMode.ADD ? "Draw to ADD area" : "Draw to REMOVE area"); break;
-                default: instructionText.setText("Select a tool to edit or measure"); break;
+                case ZOOM_PAN: instructionText.setText("🔍 Use Two Fingers: Pinch to zoom or Drag to pan."); break;
+                case LASSO: instructionText.setText("⭕ Lasso: Draw a rough circle around the wound to find its edges."); break;
+                case EDIT: instructionText.setText(currentEditMode == EditMode.ADD ? "➕ ADD area: Scribble inside parts to include them." : "➖ REMOVE area: Scribble over parts to cut them out."); break;
+                default: instructionText.setText("🔧 Choose a tool below to start editing."); break;
             }
             return;
         }
 
         switch (count) {
             case 0:
-                instructionText.setText("Step 1 of 2 — Tap the TOP edge to measure length. (Long press point to remove)");
+                instructionText.setText("📏 Step 1: Tap the TOP edge of the wound.");
                 break;
             case 1:
-                instructionText.setText("Step 1 of 2 — Tap the BOTTOM edge. (Drag points to adjust)");
+                instructionText.setText("📏 Step 1: Now tap the BOTTOM edge to measure Length.");
                 break;
             case 2:
-                instructionText.setText("Step 2 of 2 — Tap the LEFT edge of the wound to measure width");
+                instructionText.setText("📏 Step 2: Tap the LEFT edge of the wound.");
                 break;
             case 3:
-                instructionText.setText("Step 2 of 2 — Tap the RIGHT edge of the wound (opposite side)");
+                instructionText.setText("📏 Step 2: Finally, tap the RIGHT edge to measure Width.");
                 break;
             case 4:
-                instructionText.setText("✓ Wound size marked! Press Done to save measurements.");
+                instructionText.setText("✅ Perfect! Review the markings or press Confirm to finish.");
                 break;
             default:
                 if (currentMode == InteractiveMode.LASSO) {
@@ -381,7 +465,6 @@ public class WoundImageEditActivity extends AppCompatActivity {
     }
     
     private void setupToolButtons() {
-        findViewById(R.id.tool_zoom).setOnClickListener(v -> setMode(InteractiveMode.ZOOM_PAN));
         findViewById(R.id.tool_lasso).setOnClickListener(v -> setMode(InteractiveMode.LASSO));
         findViewById(R.id.tool_expand).setOnClickListener(v -> expandOrShrink(true));
         findViewById(R.id.tool_shrink).setOnClickListener(v -> expandOrShrink(false));
@@ -400,19 +483,47 @@ public class WoundImageEditActivity extends AppCompatActivity {
     }
     
     private void setMode(InteractiveMode mode) {
+        if (mode == InteractiveMode.LASSO && currentMode != InteractiveMode.LASSO) {
+            saveHistory();
+            prepareForLasso();
+        }
+        
+        // Clear measurements if we enter Edit or Lasso mode to ensure state consistency
+        if ((mode == InteractiveMode.EDIT || mode == InteractiveMode.LASSO) && currentMode != mode) {
+            if (canvasView != null) {
+                canvasView.clear();
+            }
+        }
+        
         currentMode = mode;
         if (canvasView != null) {
             canvasView.setMode(mode, currentEditMode);
         }
         updateInstructions(canvasView != null ? canvasView.setCount() : 0);
         
-        // Update UI highlights
-        int highlight = Color.parseColor("#44FFFFFF");
-        findViewById(R.id.tool_zoom).setBackgroundColor(mode == InteractiveMode.ZOOM_PAN ? highlight : Color.TRANSPARENT);
-        findViewById(R.id.tool_lasso).setBackgroundColor(mode == InteractiveMode.LASSO ? highlight : Color.TRANSPARENT);
-        findViewById(R.id.tool_add).setBackgroundColor(mode == InteractiveMode.EDIT && currentEditMode == EditMode.ADD ? highlight : Color.TRANSPARENT);
-        findViewById(R.id.tool_remove).setBackgroundColor(mode == InteractiveMode.EDIT && currentEditMode == EditMode.REMOVE ? highlight : Color.TRANSPARENT);
-        findViewById(R.id.tool_measure).setBackgroundColor(mode == InteractiveMode.MEASURE ? highlight : Color.TRANSPARENT);
+        // Updated UI highlights for the new design
+        updateToolUI(R.id.tool_lasso, mode == InteractiveMode.LASSO);
+        updateToolUI(R.id.tool_add, mode == InteractiveMode.EDIT && currentEditMode == EditMode.ADD);
+        updateToolUI(R.id.tool_remove, mode == InteractiveMode.EDIT && currentEditMode == EditMode.REMOVE);
+        updateToolUI(R.id.tool_measure, mode == InteractiveMode.MEASURE);
+    }
+
+    private void updateToolUI(int viewId, boolean isActive) {
+        View container = findViewById(viewId);
+        if (container instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) container;
+            group.setBackgroundResource(isActive ? R.drawable.bg_tool_active : 0);
+            
+            // Update children colors (Icon and Text)
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child instanceof ImageView) {
+                    ((ImageView) child).setImageTintList(ColorStateList.valueOf(isActive ? Color.WHITE : Color.parseColor("#555555")));
+                } else if (child instanceof TextView) {
+                    ((TextView) child).setTextColor(isActive ? Color.WHITE : Color.parseColor("#555555"));
+                }
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -464,9 +575,9 @@ public class WoundImageEditActivity extends AppCompatActivity {
      */
     private String buildBanner(double areaCm2, String lengthStr, String widthStr) {
         StringBuilder sb = new StringBuilder();
-//        sb.append(String.format("🩹 Area: %.2f cm²", areaCm2));
-        if (lengthStr != null) sb.append("    ​​​   📏 Length: ").append(lengthStr);
-        if (widthStr != null) sb.append("   |​​​   📐 Width:  ").append(widthStr);
+        sb.append(String.format("Area: %.2f cm²", areaCm2));
+        if (lengthStr != null) sb.append("  |  Length: ").append(lengthStr);
+        if (widthStr != null) sb.append("  |  Width: ").append(widthStr);
         return sb.toString();
     }
 
@@ -578,33 +689,136 @@ public class WoundImageEditActivity extends AppCompatActivity {
         }).start();
     }
 
+    /**
+     * Expand or shrink the wound contour using centroid-based scaling,
+     * exactly as implemented in Illuminate-landscape (WoundContouring.getModifiedContour).
+     *
+     * Each click moves every contour point 10% away from the wound centroid (expand)
+     * or 10% toward it (shrink). No GrabCut or morphology needed — fast and precise.
+     *
+     * @param expand true = expand outward 10%, false = shrink inward 10%
+     */
+    /**
+     * Expand or shrink the wound contour using morphological operations refined by GrabCut.
+     * This ensures the contour stays within the "wound region only" by snapping to image edges.
+     *
+     * @param expand true = expand (Dilate + Snap), false = shrink (Erode)
+     */
     private void expandOrShrink(boolean expand) {
         if (baseBitmap == null) return;
+
         Mat currentMask = canvasView.getCurrentMask();
-        if (currentMask == null || Core.countNonZero(currentMask) == 0) return;
+        if (currentMask == null || Core.countNonZero(currentMask) == 0) {
+            Toast.makeText(this, "No wound area to " + (expand ? "expand" : "shrink"), Toast.LENGTH_SHORT).show();
+            if (currentMask != null) currentMask.release();
+            return;
+        }
 
         saveHistory();
         progressBar.setVisibility(View.VISIBLE);
+
         new Thread(() -> {
             try {
-                Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(7, 7));
-                Mat processedMask = new Mat();
+                // 1. Prepare base image in BGR for intelligent edge detection
+                Mat baseMat = new Mat();
+                Utils.bitmapToMat(baseBitmap, baseMat);
+                Imgproc.cvtColor(baseMat, baseMat, Imgproc.COLOR_RGBA2BGR);
+
+                Mat resultMask;
                 if (expand) {
-                    Imgproc.dilate(currentMask, processedMask, kernel);
+                    // --- SMART EXPAND ---
+                    // Create search area by dilating slightly
+                    Mat searchArea = new Mat();
+                    Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(35, 35));
+                    Imgproc.dilate(currentMask, searchArea, kernel);
+                    kernel.release();
+                    
+                    // Intelligent Snap: Anchor the current wound as definite foreground
+                    // and the new dilated area as probable foreground.
+                    resultMask = performSmartGrabCut(baseMat, searchArea, currentMask, true);
+                    searchArea.release();
                 } else {
-                    Imgproc.erode(currentMask, processedMask, kernel);
+                    // --- SMART SHRINK ---
+                    // Anchor only the core of the wound to prevent it from disappearing
+                    Mat core = new Mat();
+                    Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(25, 25));
+                    Imgproc.erode(currentMask, core, kernel);
+                    kernel.release();
+                    
+                    resultMask = performSmartGrabCut(baseMat, currentMask, core, false);
+                    core.release();
                 }
-                
-                updateMaskAndRecontour(processedMask);
-                processedMask.release();
-                kernel.release();
+
+                baseMat.release();
                 currentMask.release();
+
+                // Safety: Ensure we still have a wound
+                if (resultMask == null || Core.countNonZero(resultMask) == 0) {
+                    if (resultMask != null) resultMask.release();
+                    runOnUiThread(() -> {
+                        progressBar.setVisibility(View.GONE);
+                        Toast.makeText(this, "Intelligent adjustment failed to find edges", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
+
+                updateMaskAndRecontour(resultMask);
+                resultMask.release();
+
+                runOnUiThread(() -> {
+                    setMode(InteractiveMode.MEASURE);
+                    progressBar.setVisibility(View.GONE);
+                });
+
             } catch (Exception e) {
-                Log.e(TAG, "Expand/Shrink failed", e);
-            } finally {
-                runOnUiThread(() -> progressBar.setVisibility(View.GONE));
+                Log.e(TAG, "Smart Expand/Shrink failed", e);
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                });
             }
         }).start();
+    }
+
+    /**
+     * Performs a stable GrabCut by anchoring a 'core' area as definite foreground.
+     * This prevents the algorithm from deciding the entire region is background.
+     */
+    private Mat performSmartGrabCut(Mat bgrMat, Mat searchArea, Mat coreArea, boolean expanding) {
+        Mat grabcutMask = new Mat(bgrMat.size(), CvType.CV_8UC1, new Scalar(Imgproc.GC_BGD));
+        
+        // Probable area
+        grabcutMask.setTo(new Scalar(Imgproc.GC_PR_FGD), searchArea);
+        
+        // Definite anchor (prevent hiding/disappearing)
+        if (coreArea != null && Core.countNonZero(coreArea) > 0) {
+            grabcutMask.setTo(new Scalar(Imgproc.GC_FGD), coreArea);
+        }
+
+        org.opencv.core.Rect rect = Imgproc.boundingRect(searchArea);
+        if (rect.width <= 0 || rect.height <= 0) return searchArea.clone();
+
+        Mat bgModel = new Mat();
+        Mat fgModel = new Mat();
+        try {
+            Imgproc.grabCut(bgrMat, grabcutMask, rect, bgModel, fgModel, 2, Imgproc.GC_INIT_WITH_MASK);
+            Mat result = new Mat();
+            Core.compare(grabcutMask, new Scalar(Imgproc.GC_PR_FGD), result, Core.CMP_EQ);
+            Mat definiteFgd = new Mat();
+            Core.compare(grabcutMask, new Scalar(Imgproc.GC_FGD), definiteFgd, Core.CMP_EQ);
+            Core.bitwise_or(result, definiteFgd, result);
+            definiteFgd.release();
+            
+            // If GrabCut results in an empty mask, fallback to the requested searchArea
+            if (Core.countNonZero(result) == 0) return searchArea.clone();
+            
+            return result;
+        } catch (Exception e) {
+            return searchArea.clone();
+        } finally {
+            bgModel.release();
+            fgModel.release();
+            grabcutMask.release();
+        }
     }
     
     /**
@@ -613,8 +827,8 @@ public class WoundImageEditActivity extends AppCompatActivity {
      */
     public void prepareForLasso() {
         if (baseBitmap == null || canvasView == null) return;
-        if (currentMode == InteractiveMode.LASSO) {
-            canvasView.updateData(baseBitmap, new ArrayList<>());
+        canvasView.updateData(baseBitmap, new ArrayList<>());
+        if (measurementText != null) {
             measurementText.setText(buildBanner(0));
         }
     }
@@ -628,26 +842,18 @@ public class WoundImageEditActivity extends AppCompatActivity {
             // Sort by area descending
             woundContours.sort((o1, o2) -> Double.compare(Imgproc.contourArea(o2), Imgproc.contourArea(o1)));
             
-            // If we are REMOVING, we strictly keep only the largest piece to prevent splitting.
-            // In ADD or LASSO mode, we allow multiple pieces (for disconnected wounds or building).
-            if (currentMode == InteractiveMode.EDIT && currentEditMode == EditMode.REMOVE) {
-                newMask8u.setTo(new Scalar(0));
-                Imgproc.drawContours(newMask8u, woundContours, 0, new Scalar(255), -1);
-                while (woundContours.size() > 1) {
-                    woundContours.remove(1).release();
-                }
-            } else {
-                // For Add/Lasso, we only discard tiny noise (less than 1% of the largest component)
-                double maxArea = Imgproc.contourArea(woundContours.get(0));
-                for (int i = woundContours.size() - 1; i >= 1; i--) {
-                    if (Imgproc.contourArea(woundContours.get(i)) < maxArea * 0.01) {
-                        woundContours.remove(i).release();
-                    }
-                }
-                // Refresh mask to match filtered contours
-                newMask8u.setTo(new Scalar(0));
-                Imgproc.drawContours(newMask8u, woundContours, -1, new Scalar(255), -1);
+            // Strictly keep only the largest piece as per user requirement for a single contour.
+            // This ensures the entire wound is treated as a single entity rather than multiple disconnected ones.
+            newMask8u.setTo(new Scalar(0));
+            Imgproc.drawContours(newMask8u, woundContours, 0, new Scalar(255), -1);
+            
+            // Release all except the largest one and update the list
+            MatOfPoint largest = woundContours.get(0);
+            for (int i = 1; i < woundContours.size(); i++) {
+                woundContours.get(i).release();
             }
+            woundContours.clear();
+            woundContours.add(largest);
         }
 
         // 1. Recalculate area for the PRIMARY piece only
@@ -677,13 +883,26 @@ public class WoundImageEditActivity extends AppCompatActivity {
             }
         }
 
+        // 3. Find the centroid of the largest component for auto-measurement
+        android.graphics.PointF centroid = null;
+        if (woundContours != null && !woundContours.isEmpty()) {
+            Moments mu = Imgproc.moments(woundContours.get(0));
+            if (mu.m00 != 0) {
+                centroid = new android.graphics.PointF(
+                    (float) (mu.m10 / mu.m00 / w),
+                    (float) (mu.m01 / mu.m00 / h)
+                );
+            }
+        }
+
         Bitmap result = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(baseMat, result);
         baseMat.release();
 
+        final android.graphics.PointF finalCentroid = centroid;
         final String bannerStr = buildBanner(woundArea);
         runOnUiThread(() -> {
-            canvasView.updateData(result, borderPoints);
+            canvasView.updateData(result, borderPoints, finalCentroid);
             measurementText.setText(bannerStr);
         });
     }
@@ -861,6 +1080,12 @@ public class WoundImageEditActivity extends AppCompatActivity {
             final android.graphics.PointF finalCentroid = maskCentroid;
 
             runOnUiThread(() -> {
+                // Store initial state for Reset functionality
+                initialProcessBitmap = result;
+                initialBorderPoints = finalBorderPoints;
+                initialCentroid = finalCentroid;
+                initialWoundAreaDetected = woundArea;
+
                 // Set original dimensions FIRST so pixelDist() is correct from the first tap
                 canvasView.setImagePixelDimensions(finalW, finalH);
                 canvasView.setPixelPerUnit(pixelPerUnit);
@@ -932,6 +1157,7 @@ public class WoundImageEditActivity extends AppCompatActivity {
         private final Paint line1Paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint line2Paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint labelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint labelShadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         private OnPointsChangedListener listener;
 
@@ -1003,9 +1229,17 @@ public class WoundImageEditActivity extends AppCompatActivity {
             line2Paint.setPathEffect(new DashPathEffect(dash, 0));
             
             labelPaint.setColor(Color.WHITE);
-            labelPaint.setTextSize(36f);
+            labelPaint.setTextSize(42f);
+            labelPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
             labelPaint.setTextAlign(Paint.Align.CENTER);
-            labelPaint.setShadowLayer(5f, 0, 0, Color.BLACK);
+            labelPaint.setShadowLayer(8f, 0, 0, Color.BLACK);
+
+            labelShadowPaint.setColor(Color.BLACK);
+            labelShadowPaint.setTextSize(42f);
+            labelShadowPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+            labelShadowPaint.setTextAlign(Paint.Align.CENTER);
+            labelShadowPaint.setStyle(Paint.Style.STROKE);
+            labelShadowPaint.setStrokeWidth(4f);
 
             lassoPaint.setStyle(Paint.Style.STROKE);
             lassoPaint.setStrokeWidth(5f);
@@ -1040,12 +1274,44 @@ public class WoundImageEditActivity extends AppCompatActivity {
             invalidate();
         }
 
-        public void updateData(Bitmap bmp, List<List<PointF>> points) {
+        public void updateData(Bitmap bmp, List<List<PointF>> points, PointF centroid) {
             imageBitmap = bmp;
             borderPoints = points;
+            maskCentroid = centroid;
             currentLassoPath.reset();
             lassoPoints.clear();
+            
+            // Always reset existing manual points when the contour changes
+            for (int i = 0; i < 4; i++) pts[i] = null; 
+            
+            // Auto-calculate axes based on centroid - REMOVED to force manual measurement
+            /*
+            if (centroid != null) {
+                // Find a starting point for the 12 o'clock position (highest point on the contour)
+                PointF startPt = null;
+                float minY = Float.MAX_VALUE;
+                for (List<PointF> poly : borderPoints) {
+                    for (PointF p : poly) {
+                        if (p.y < minY) {
+                            minY = p.y;
+                            startPt = p;
+                        }
+                    }
+                }
+                
+                if (startPt != null) {
+                    pts[0] = startPt;
+                    autoFillClockFace(startPt);
+                }
+            }
+            */
+            
             invalidate();
+            notifyListener();
+        }
+
+        public void updateData(Bitmap bmp, List<List<PointF>> points) {
+            updateData(bmp, points, null);
         }
 
         private void configureInitialMatrix() {
@@ -1068,8 +1334,9 @@ public class WoundImageEditActivity extends AppCompatActivity {
 
         public void undo() {
             if (currentMode == InteractiveMode.MEASURE) {
-                int n = setCount();
-                if (n > 0) { pts[n - 1] = null; invalidate(); notifyListener(); }
+                for (int i = 0; i < 4; i++) pts[i] = null;
+                invalidate();
+                notifyListener();
             } else {
                 currentLassoPath.reset();
                 lassoPoints.clear();
@@ -1113,28 +1380,68 @@ public class WoundImageEditActivity extends AppCompatActivity {
                 drawPair(canvas, 2, 3, line2Paint);
             }
 
-            // Draw Lasso
+            // Draw Lasso (clipped to image area)
             if ((currentMode == InteractiveMode.LASSO || currentMode == InteractiveMode.EDIT) && !currentLassoPath.isEmpty()) {
+                canvas.save();
+                float[] corners = {0, 0, imageBitmap.getWidth(), 0, imageBitmap.getWidth(), imageBitmap.getHeight(), 0, imageBitmap.getHeight()};
+                matrix.mapPoints(corners);
+                float left = corners[0], right = corners[0], top = corners[1], bottom = corners[1];
+                for (int i = 2; i < 8; i += 2) {
+                    left = Math.min(left, corners[i]);
+                    right = Math.max(right, corners[i]);
+                    top = Math.min(top, corners[i+1]);
+                    bottom = Math.max(bottom, corners[i+1]);
+                }
+                canvas.clipRect(left, top, right, bottom);
                 canvas.drawPath(currentLassoPath, lassoPaint);
+                canvas.restore();
             }
         }
 
         private void drawPair(Canvas canvas, int ia, int ib, Paint lp) {
             if (pts[ia] == null) return;
             PointF va = toView(pts[ia]);
-            drawDot(canvas, va.x, va.y, CONFIG[ia / 2][0], LABELS[ia]);
             if (pts[ib] != null) {
                 PointF vb = toView(pts[ib]);
-                drawDot(canvas, vb.x, vb.y, CONFIG[ia / 2][1], LABELS[ib]);
                 canvas.drawLine(va.x, va.y, vb.x, vb.y, lp);
+                drawDot(canvas, vb.x, vb.y, CONFIG[ia / 2][1], LABELS[ib]);
             }
+            drawDot(canvas, va.x, va.y, CONFIG[ia / 2][0], LABELS[ia]);
         }
 
         private void drawDot(Canvas c, float x, float y, int color, String lbl) {
-            c.drawCircle(x, y, 22f, ringPaint);
             dotPaint.setColor(color);
             c.drawCircle(x, y, 14f, dotPaint);
-            c.drawText(lbl, x, y - 30f, labelPaint);
+            
+            float offsetY = -30f;
+            float offsetX = 0f;
+            
+            // Adjust label position based on clock face position
+            if (lbl.equals("12")) {
+                offsetY = -35f;
+            } else if (lbl.equals("6")) {
+                offsetY = 45f;
+            } else if (lbl.equals("9")) {
+                offsetX = -40f;
+                offsetY = 15f;
+                labelPaint.setTextAlign(Paint.Align.RIGHT);
+                labelShadowPaint.setTextAlign(Paint.Align.RIGHT);
+            } else if (lbl.equals("3")) {
+                offsetX = 40f;
+                offsetY = 15f;
+                labelPaint.setTextAlign(Paint.Align.LEFT);
+                labelShadowPaint.setTextAlign(Paint.Align.LEFT);
+            } else {
+                labelPaint.setTextAlign(Paint.Align.CENTER);
+                labelShadowPaint.setTextAlign(Paint.Align.CENTER);
+            }
+            
+            c.drawText(lbl, x + offsetX, y + offsetY, labelShadowPaint);
+            c.drawText(lbl, x + offsetX, y + offsetY, labelPaint);
+            
+            // Reset alignment for next call
+            labelPaint.setTextAlign(Paint.Align.CENTER);
+            labelShadowPaint.setTextAlign(Paint.Align.CENTER);
         }
 
         private PointF toView(PointF n) {
@@ -1163,10 +1470,15 @@ public class WoundImageEditActivity extends AppCompatActivity {
 
             // Restrict drawing to the visible image bounds (view coordinates)
             if (currentMode == InteractiveMode.LASSO || currentMode == InteractiveMode.EDIT) {
-                float[] rect = {0, 0, imageBitmap.getWidth(), imageBitmap.getHeight()};
-                matrix.mapPoints(rect);
-                float left = Math.min(rect[0], rect[2]), right = Math.max(rect[0], rect[2]);
-                float top = Math.min(rect[1], rect[3]), bottom = Math.max(rect[1], rect[3]);
+                float[] corners = {0, 0, imageBitmap.getWidth(), 0, imageBitmap.getWidth(), imageBitmap.getHeight(), 0, imageBitmap.getHeight()};
+                matrix.mapPoints(corners);
+                float left = corners[0], right = corners[0], top = corners[1], bottom = corners[1];
+                for (int i = 2; i < 8; i += 2) {
+                    left = Math.min(left, corners[i]);
+                    right = Math.max(right, corners[i]);
+                    top = Math.min(top, corners[i+1]);
+                    bottom = Math.max(bottom, corners[i+1]);
+                }
                 x = Math.max(left, Math.min(x, right));
                 y = Math.max(top, Math.min(y, bottom));
             }
@@ -1224,6 +1536,11 @@ public class WoundImageEditActivity extends AppCompatActivity {
                     if (n >= 4) return true;
 
                     PointF norm = toNormalised(x, y);
+                    if (!isPointInside(norm)) {
+                        Toast.makeText(getContext(), "Measurement points must be within the wound contour", Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+                    
                     float snapR = (SNAP_RADIUS_DP * getResources().getDisplayMetrics().density);
                     matrix.getValues(matrixValues);
                     float currentScale = matrixValues[Matrix.MSCALE_X];
@@ -1242,10 +1559,12 @@ public class WoundImageEditActivity extends AppCompatActivity {
                 } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
                     if (draggedPointIndex != -1) {
                         PointF norm = toNormalised(x, y);
-                        // Optional: snap while dragging
-                        pts[draggedPointIndex] = norm;
-                        invalidate();
-                        notifyListener();
+                        // Prevent dragging points outside the wound contour
+                        if (isPointInside(norm)) {
+                            pts[draggedPointIndex] = norm;
+                            invalidate();
+                            notifyListener();
+                        }
                         return true;
                     }
                 } else if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
@@ -1278,6 +1597,7 @@ public class WoundImageEditActivity extends AppCompatActivity {
                     WoundImageEditActivity act = (WoundImageEditActivity) ctx;
                     act.saveHistory();
                     act.autoEdgeDetection(lassoMask, false);
+                    act.runOnUiThread(() -> act.setMode(InteractiveMode.MEASURE));
                 }
             } else if (currentMode == InteractiveMode.EDIT) {
                 if (currentEditMode == EditMode.ADD) {
@@ -1315,8 +1635,47 @@ public class WoundImageEditActivity extends AppCompatActivity {
             float ux = dx / len, uy = dy / len;
 
             pts[1] = rayContourIntersection(-ux / imgOriginalWidth, -uy / imgOriginalHeight);
-            pts[2] = rayContourIntersection(uy / imgOriginalWidth, -ux / imgOriginalHeight);
-            pts[3] = rayContourIntersection(-uy / imgOriginalWidth, ux / imgOriginalHeight);
+            
+            // Try to find 9 and 3 o'clock via ray intersection first
+            pts[2] = rayContourIntersection(-uy / imgOriginalWidth, ux / imgOriginalHeight); // 9 o'clock
+            pts[3] = rayContourIntersection(uy / imgOriginalWidth, -ux / imgOriginalHeight); // 3 o'clock
+            
+            // Fallback: If 9 or 3 is missing, find furthest points perpendicular to 12-6 axis
+            if (pts[2] == null || pts[3] == null) {
+                if (pts[1] != null) {
+                    float axisX = pts[1].x - p12.x;
+                    float axisY = pts[1].y - p12.y;
+                    float axisLen = (float) Math.sqrt(axisX * axisX + axisY * axisY);
+                    if (axisLen > 0) {
+                        float nAxisX = axisX / axisLen;
+                        float nAxisY = axisY / axisLen;
+                        
+                        PointF best9 = null, best3 = null;
+                        float maxD9 = 0, maxD3 = 0;
+                        
+                        for (List<PointF> contour : borderPoints) {
+                            for (PointF p : contour) {
+                                // Perpendicular distance from point p to line (p12 -> pts[1])
+                                // d = |(p.x - p12.x)*nAxisY - (p.y - p12.y)*nAxisX|
+                                float cross = (p.x - p12.x) * nAxisY - (p.y - p12.y) * nAxisX;
+                                if (cross < 0) { // One side (9 o'clock side)
+                                    if (Math.abs(cross) > maxD9) {
+                                        maxD9 = Math.abs(cross);
+                                        best9 = p;
+                                    }
+                                } else { // Other side (3 o'clock side)
+                                    if (cross > maxD3) {
+                                        maxD3 = cross;
+                                        best3 = p;
+                                    }
+                                }
+                            }
+                        }
+                        if (pts[2] == null) pts[2] = best9;
+                        if (pts[3] == null) pts[3] = best3;
+                    }
+                }
+            }
         }
 
         private PointF rayContourIntersection(float vx, float vy) {
@@ -1362,6 +1721,29 @@ public class WoundImageEditActivity extends AppCompatActivity {
             double dx = (a.x - b.x) * imgOriginalWidth;
             double dy = (a.y - b.y) * imgOriginalHeight;
             return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        private boolean isPointInside(PointF p) {
+            if (p == null || borderPoints == null || borderPoints.isEmpty()) return false;
+            for (List<PointF> poly : borderPoints) {
+                if (isInsidePolygon(p.x, p.y, poly)) return true;
+            }
+            return false;
+        }
+
+        private boolean isInsidePolygon(float px, float py, List<PointF> poly) {
+            if (poly.size() < 3) return false;
+            boolean inside = false;
+            int n = poly.size();
+            for (int i = 0, j = n - 1; i < n; j = i++) {
+                PointF pi = poly.get(i);
+                PointF pj = poly.get(j);
+                if (((pi.y > py) != (pj.y > py)) &&
+                        (px < (pj.x - pi.x) * (py - pi.y) / (pj.y - pi.y) + pi.x)) {
+                    inside = !inside;
+                }
+            }
+            return inside;
         }
 
         private PointF nearest(float nx, float ny, float snapR) {

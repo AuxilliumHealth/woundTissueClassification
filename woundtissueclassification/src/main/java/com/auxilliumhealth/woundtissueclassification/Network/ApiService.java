@@ -56,6 +56,8 @@ public interface ApiService {
     Call<ResponseBody> getWoundList(@Body WoundListModel request);
     @POST("/v1/data/getWoundDetails")
     Call<ResponseBody> getWoundDetails(@Body WoundDetailsModel request);
+    @POST("v1/data/deleteSession")
+    Call<ResponseBody> deleteSession(@Body WoundDetailsModel request);
     @POST("/v1/data/getLatestSession")
     Call<ResponseBody> getLatestSession(@Body WoundListModel request);
 

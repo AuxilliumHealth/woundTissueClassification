@@ -369,6 +369,43 @@ public class Repository {
         });
     }
 
+    public void deleteSession(WoundDetailsModel request, String token, GetCommonAPIDataSuccessCallBack callback) {
+        this.getCommonAPIDataSuccessCallBack = callback;
+
+        Retrofit retrofit = ApiClient.getInstance(false, token);
+        ApiService apiService = retrofit.create(ApiService.class);
+
+        Call<ResponseBody> call = apiService.deleteSession(request);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                if (response.isSuccessful()) {
+                    getCommonAPIDataSuccessCallBack.getCommonAPIDataSuccess(response.body());
+                } else {
+                    ResponseBody errorBody = response.errorBody();
+                    String message = "";
+
+                    try {
+                        Gson gson = new Gson();
+                        ErrorResponseModel errorResponse = gson.fromJson(errorBody.string(), ErrorResponseModel.class);
+                        if (errorResponse != null && errorResponse.getError() != null) {
+                            message = errorResponse.getError();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(message);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                getCommonAPIDataSuccessCallBack.getCommonAPIDataFailure(String.format("%s %s", Constants.API_FAILURE, t.toString()));
+            }
+        });
+    }
+
     public void processAIModelImage(AIModelProcessRequest request, String token, GetCommonAPIDataSuccessCallBack callback) {
         this.getCommonAPIDataSuccessCallBack = callback;
 
@@ -440,6 +477,7 @@ public class Repository {
         parts.put("WoundLength", RequestBody.create(text, woundLength != null ? String.format("%.6f", woundLength) : "null"));
         parts.put("WoundWidth",  RequestBody.create(text, woundWidth  != null ? String.format("%.6f", woundWidth)  : "null"));
         parts.put("WoundDepth",  RequestBody.create(text, woundDepth  != null ? String.format("%.6f", woundDepth)  : "null"));
+        parts.put("manualVerification", RequestBody.create(text, request.getManualVerification() != null ? String.valueOf(request.getManualVerification()) : "false"));
 
         // Optional file part — null is fine; Retrofit omits null @Part values in multipart
         MultipartBody.Part filePart = null;

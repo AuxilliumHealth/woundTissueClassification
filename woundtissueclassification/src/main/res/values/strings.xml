@@ -39,7 +39,7 @@
     <string name="btn_ok">OK</string>
     <string name="btn_redraw_boundary">Lasso/Reprocess</string>
     <string name="btn_cancel">Cancel</string>
-    <string name="btn_edit_markings">Edit measurement</string>
+    <string name="btn_edit_markings">Adjust Wound Boundary</string>
 
     <!-- Accessibility -->
     <string name="content_desc_progress_indicator">Progress indicator</string>

@@ -66,9 +66,16 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.3")
+    implementation("com.github.AuxilliumHealth:woundtissueclassification:1.0.4")
 }
 ```
+
+## What's New in 1.0.4
+
+- **Symptom Tracker**: Added a comprehensive symptom tracking and risk scoring flow after wound capture.
+- **Edit Measurements**: Added the ability to manually adjust AI-detected wound dimensions (Length, Width, Depth, Area) directly from the Results screen.
+- **Dynamic Theming**: Enhanced dynamic UI theming. Measurement inputs, cursors, selection handles, and buttons now flawlessly inherit the developer-provided `primaryColor`.
+- **Removed Legacy 3D Camera**: Streamlined the SDK by deprecating and removing the older 3D Camera Capture component.
 
 ## Permissions
 

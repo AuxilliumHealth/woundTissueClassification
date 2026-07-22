@@ -1743,6 +1743,7 @@ public class SymptomQuestionActivity extends RootActivity {
         resultIntent.putExtra("userId", userId);
         resultIntent.putExtra("woundId", woundId);
         resultIntent.putExtra("status", "cancelled");
+        resultIntent.putExtra("onBackPressedFinish", true);
         setResult(RESULT_CANCELED, resultIntent);
         super.onBackPressed();
     }

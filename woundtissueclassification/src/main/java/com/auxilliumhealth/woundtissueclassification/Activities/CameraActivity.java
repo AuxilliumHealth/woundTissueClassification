@@ -30,18 +30,6 @@ import android.hardware.camera2.TotalCaptureResult;
 import androidx.exifinterface.media.ExifInterface;
 
 import android.annotation.SuppressLint;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.params.OutputConfiguration;
-import android.hardware.camera2.params.SessionConfiguration;
-import android.media.Image;
-import android.media.ImageReader;
-import android.graphics.ImageFormat;
-import android.view.Surface;
-import android.graphics.SurfaceTexture;
-import java.util.Arrays;
-import java.nio.ByteBuffer;
-import com.auxilliumhealth.woundtissueclassification.Utils.StereoCameraDetector;
 
 import android.media.MediaActionSound;
 import android.os.Bundle;
@@ -90,7 +78,6 @@ import com.auxilliumhealth.woundtissueclassification.Utils.CameraGridOverlay;
 import com.auxilliumhealth.woundtissueclassification.Utils.FocusCircle;
 
 import com.auxilliumhealth.woundtissueclassification.Utils.GyroscopeChecker;
-import com.auxilliumhealth.woundtissueclassification.Utils.WoundDepthProcessor;
 import com.auxilliumhealth.woundtissueclassification.ViewModel.CameraViewModel;
 import com.bumptech.glide.Glide;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -143,16 +130,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private GyroscopeChecker gyroscopeChecker;
     private View[] segments;
 
-    // Stereo Mode Variables
-    private boolean isStereoModeEnabled = false;
-    private android.view.TextureView stereoTextureView;
-    private CameraDevice stereoCameraDevice;
-    private CameraCaptureSession stereoCaptureSession;
-    private ImageReader leftImageReader;
-    private ImageReader rightImageReader;
-    private String logicalCameraId;
-    private List<String> physicalCameraIds;
-    private CameraManager cameraManager;
     private boolean isImaging = false;
     private boolean isFlat = false;
     private float capturedAzimuth = 0f;
@@ -163,10 +140,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     private boolean hasPermission = false;
     private boolean hasRequestedPermission = false;
     private CameraViewModel viewModel;
-    private double localDepthMm = 0.0;
-    private double baselineCm = 0.0;
-    private String leftFilePath = null;
-    private String rightFilePath = null;
     private boolean isFocusDistanceSupported = true;
     private AlertDialog uploadProgressDialog;
     private ProgressBar uploadProgressBar;
@@ -199,22 +172,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
             initGyroscope();
             checkFocusDistanceSupport();
 
-            StereoCameraDetector detector = new StereoCameraDetector(this);
-            if (detector.isStereoSupported()) {
-                isStereoModeEnabled = true;
-                logicalCameraId = detector.getLogicalCameraId();
-                physicalCameraIds = detector.getPhysicalCameraIds();
-                baselineCm = detector.getBaselineMm() / 10.0; // Convert mm to cm
-                Log.d(TAG, "Stereo Baseline (cm): " + baselineCm);
-                
-                if (cameraGrid != null) {
-                    cameraGrid.setVisibility(View.VISIBLE);
-                }
-                initStereoCamera2();
-            } else {
-                isStereoModeEnabled = false;
-                initCamera();
-            }
+            initCamera();
             initExposureControl();
             viewModel = new ViewModelProvider(this).get(CameraViewModel.class);
             setupObservers();
@@ -452,95 +410,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
         }
     }
 
-    @SuppressLint({"MissingPermission", "NewApi"})
-    private void initStereoCamera2() {
-        cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        try {
-            cameraManager.openCamera(logicalCameraId, new CameraDevice.StateCallback() {
-                @Override
-                public void onOpened(@NonNull CameraDevice camera) {
-                    stereoCameraDevice = camera;
-                    startStereoPreviewAndCaptureSession();
-                }
-
-                @Override
-                public void onDisconnected(@NonNull CameraDevice camera) {
-                    camera.close();
-                }
-
-                @Override
-                public void onError(@NonNull CameraDevice camera, int error) {
-                    camera.close();
-                    stereoCameraDevice = null;
-                }
-            }, uiHandler);
-        } catch (Exception e) {
-            Log.e(TAG, "Error opening stereo camera", e);
-        }
-    }
-
-    @SuppressLint("NewApi")
-    private void startStereoPreviewAndCaptureSession() {
-        uiHandler.post(() -> {
-            stereoTextureView = new android.view.TextureView(CameraActivity.this);
-            stereoTextureView.setLayoutParams(new android.widget.FrameLayout.LayoutParams(
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT, 
-                    android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
-            stereoTextureView.setSurfaceTextureListener(new android.view.TextureView.SurfaceTextureListener() {
-                @Override
-                public void onSurfaceTextureAvailable(@NonNull SurfaceTexture texture, int width, int height) {
-                    try {
-                        texture.setDefaultBufferSize(width, height);
-                        Surface previewSurface = new Surface(texture);
-
-                        leftImageReader = ImageReader.newInstance(1920, 1080, ImageFormat.JPEG, 2);
-                        rightImageReader = ImageReader.newInstance(1920, 1080, ImageFormat.JPEG, 2);
-
-                        OutputConfiguration previewConfig = new OutputConfiguration(previewSurface);
-                        OutputConfiguration leftConfig = new OutputConfiguration(leftImageReader.getSurface());
-                        leftConfig.setPhysicalCameraId(physicalCameraIds.get(0));
-                        OutputConfiguration rightConfig = new OutputConfiguration(rightImageReader.getSurface());
-                        rightConfig.setPhysicalCameraId(physicalCameraIds.get(1));
-
-                        SessionConfiguration sessionConfig = new SessionConfiguration(
-                                SessionConfiguration.SESSION_REGULAR,
-                                Arrays.asList(previewConfig, leftConfig, rightConfig),
-                                cameraExecutor,
-                                new CameraCaptureSession.StateCallback() {
-                                    @Override
-                                    public void onConfigured(@NonNull CameraCaptureSession session) {
-                                        stereoCaptureSession = session;
-                                        try {
-                                            CaptureRequest.Builder builder = stereoCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-                                            builder.addTarget(previewSurface);
-                                            stereoCaptureSession.setRepeatingRequest(builder.build(), null, uiHandler);
-                                        } catch (Exception e) { 
-                                            Log.e(TAG, "Preview request failed", e);
-                                        }
-                                    }
-
-                                    @Override
-                                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                                        Log.e(TAG, "Stereo session configuration failed");
-                                    }
-                                }
-                        );
-
-                        stereoCameraDevice.createCaptureSession(sessionConfig);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Stereo Session setup failed", e);
-                    }
-                }
-                @Override
-                public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {}
-                @Override
-                public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) { return true; }
-                @Override
-                public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {}
-            });
-            previewView.addView(stereoTextureView);
-        });
-    }
 
     @OptIn(markerClass = ExperimentalCamera2Interop.class)
     private void initCamera() {
@@ -632,8 +501,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     }
 
     private int getFocusStatus(float lensFocusDistance) {
-        if (isStereoModeEnabled) return FOCUS_STATUS_IDEAL;
-
         if (!isFocusDistanceSupported) {
             if ("calibrate".equals(whereFrom)) {
                 return (lensFocusDistances.size() >= CALIBRATION_IMAGE_COUNT) ? FOCUS_STATUS_IDEAL : FOCUS_STATUS_SIMILAR;
@@ -1000,7 +867,7 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
     }
 
     private void captureImage() {
-        if (isCapturing.get() || isDestroyed() || (!isStereoModeEnabled && imageCapture == null)) {
+        if (isCapturing.get() || isDestroyed() || imageCapture == null) {
             return;
         }
         isCapturing.set(true);
@@ -1012,152 +879,27 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
 
         playShutterSound();
 
-        if (isStereoModeEnabled) {
-            captureStereoImage();
-        } else {
-            File photoFile = createImageFile();
-            if (photoFile == null) {
-                isCapturing.set(false);
-                return;
-            }
-
-            ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
-
-            imageCapture.takePicture(outputFileOptions, cameraExecutor, new ImageCapture.OnImageSavedCallback() {
-                @Override
-                public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                    handleImageSaved(photoFile);
-                }
-
-                @Override
-                public void onError(@NonNull ImageCaptureException exception) {
-                    handleCaptureError(exception);
-                }
-            });
-        }
-    }
-
-    @SuppressLint("NewApi")
-    private void captureStereoImage() {
-        if (isDestroyed() || stereoCameraDevice == null || stereoCaptureSession == null) {
+        File photoFile = createImageFile();
+        if (photoFile == null) {
             isCapturing.set(false);
             return;
         }
-        try {
-            // Hardware-level synchronous capture request for physical cameras
-            CaptureRequest.Builder captureBuilder = stereoCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            
-            captureBuilder.addTarget(leftImageReader.getSurface());
-            captureBuilder.addTarget(rightImageReader.getSurface());
 
-            // Use distinct temporary files for each camera output
-            File leftFile = createImageFile();
-            File rightFile = createImageFile();
+        ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(photoFile).build();
 
-            AtomicBoolean leftSaved = new AtomicBoolean(false);
-            AtomicBoolean rightSaved = new AtomicBoolean(false);
-
-            leftImageReader.setOnImageAvailableListener(reader -> {
-                saveImageSafely(reader, leftFile);
-                leftSaved.set(true);
-                checkStereoFilesSaved(leftFile, rightFile, leftSaved, rightSaved);
-            }, uiHandler);
-
-            rightImageReader.setOnImageAvailableListener(reader -> {
-                saveImageSafely(reader, rightFile);
-                rightSaved.set(true);
-                checkStereoFilesSaved(leftFile, rightFile, leftSaved, rightSaved);
-            }, uiHandler);
-
-            stereoCaptureSession.capture(captureBuilder.build(), new CameraCaptureSession.CaptureCallback() {
-                @Override
-                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                    Log.d(TAG, "Stereo hardware capture complete (synced frames)");
-                }
-            }, uiHandler);
-
-        } catch (Exception e) {
-            Log.e(TAG, "Stereo Capture failed", e);
-            isCapturing.set(false);
-        }
-    }
-
-    private void saveImageSafely(ImageReader reader, File file) {
-        Image image = null;
-        try {
-            image = reader.acquireLatestImage();
-            if (image != null) {
-                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                byte[] bytes = new byte[buffer.remaining()];
-                buffer.get(bytes);
-                try (FileOutputStream output = new FileOutputStream(file)) {
-                    output.write(bytes);
-                }
+        imageCapture.takePicture(outputFileOptions, cameraExecutor, new ImageCapture.OnImageSavedCallback() {
+            @Override
+            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                handleImageSaved(photoFile);
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error saving stereo image", e);
-        } finally {
-            if (image != null) {
-                image.close();
+
+            @Override
+            public void onError(@NonNull ImageCaptureException exception) {
+                handleCaptureError(exception);
             }
-        }
-    }
-
-        private void checkStereoFilesSaved(File rawLeftFile, File rawRightFile, AtomicBoolean leftSaved, AtomicBoolean rightSaved) {
-        if (leftSaved.get() && rightSaved.get()) {
-            // Remove listeners immediately to prevent accidental duplicate callbacks
-            leftImageReader.setOnImageAvailableListener(null, null);
-            rightImageReader.setOnImageAvailableListener(null, null);
-
-            cameraExecutor.execute(() -> {
-                try {
-                    // Correct orientation and aspect ratios for BOTH captured frames (parallaxes)
-                    File correctedLeft = correctImageOrientationAndAspect(rawLeftFile);
-                    File correctedRight = correctImageOrientationAndAspect(rawRightFile);
-
-                    if (correctedLeft != null && correctedRight != null) {
-                        Bitmap leftBmp = BitmapFactory.decodeFile(correctedLeft.getAbsolutePath());
-                        Bitmap rightBmp = BitmapFactory.decodeFile(correctedRight.getAbsolutePath());
-
-                        if (leftBmp != null && rightBmp != null) {
-                            // Local depth refinement using stereo hardware params
-                            StereoCameraDetector detector = new StereoCameraDetector(this);
-                            double baseline = detector.getBaselineMm();
-                            double focalLen = detector.getFocalLengthPx(leftBmp.getWidth());
-
-                            WoundDepthProcessor depthProcessor = new WoundDepthProcessor(baseline, focalLen);
-                            WoundDepthProcessor.DepthResult result = depthProcessor.process(leftBmp, rightBmp, null);
-
-                            Log.d(TAG, "Stereo Depth Refined: " + result.maxDepthMm + " mm");
-
-                            uiHandler.post(() -> {
-                                this.localDepthMm = result.maxDepthMm;
-                                this.leftFilePath = correctedLeft.getAbsolutePath();
-                                this.rightFilePath = correctedRight.getAbsolutePath();
-                                handleImageSaved(correctedLeft);
-                            });
-                        } else {
-                            handleStereoFailure(correctedLeft);
-                        }
-                    } else {
-                        handleStereoFailure(rawLeftFile);
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Stereo depth processing failed", e);
-                    handleStereoFailure(rawLeftFile);
-                }
-            });
-        }
-    }
-
-    private void handleStereoFailure(File fallbackFile) {
-        uiHandler.post(() -> {
-            if (fallbackFile != null) {
-                this.leftFilePath = fallbackFile.getAbsolutePath();
-            }
-            handleImageSaved(fallbackFile);
         });
     }
+
 
     private File createImageFile() {
         try {
@@ -1335,10 +1077,6 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                 intent.putExtra("woundScoreRequired", woundScoreRequired);
                 intent.putExtra("whereFrom", whereFrom);
                 intent.putExtra("imageRotationDeg", String.valueOf(capturedAzimuth));
-                intent.putExtra("localDepth", localDepthMm);
-                intent.putExtra("baselineCm", baselineCm);
-                intent.putExtra("leftFilePath", leftFilePath);
-                intent.putExtra("rightFilePath", rightFilePath);
                 startActivityForResult(intent, REQUEST_CODE_SYMPTOM_ACTIVITY);
                 finish();
             } catch (Exception e) {
@@ -1365,7 +1103,11 @@ public class CameraActivity extends AppCompatActivity implements GyroscopeChecke
                 setResult(RESULT_OK, resultIntent);
             } else {
                 Log.d(TAG, "onActivityResult: Result not OK, code: " + resultCode);
-                setResult(RESULT_CANCELED);
+                Intent resultIntent = new Intent();
+                if (data != null && data.getExtras() != null) {
+                    resultIntent.putExtras(data.getExtras());
+                }
+                setResult(RESULT_CANCELED, resultIntent);
             }
             finish();
         }

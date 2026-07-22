@@ -51,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
         boolean riskScoreRequired = switchRiskScore.isChecked();
         boolean bodySelectionRequired = switchBodySelection.isChecked();
         boolean calibrationRequired = switchCalibration.isChecked();
-
         woundtissueclassification.woundtissueclassificationWithLauncher(woundTissueLauncher, this,
                 "user_id", // userId
                 "wound_id", // woundId (optional)
